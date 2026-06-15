@@ -1,0 +1,30 @@
+/* Cera webview styles. Uses VS Code theme variables so the editor inherits
+   the user's active color theme — no hardcoded colors. */
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+/* Zen-mode reading column: centered, generous, distraction-free. */
+.cera-document {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 48px 24px 30vh 24px;
+  line-height: 1.6;
+}
+
+.cera-raw {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+}

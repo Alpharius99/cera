@@ -1,0 +1,15 @@
+# Node / VS Code extension
+node_modules/
+out/
+dist/
+*.vsix
+
+# VS Code extension test runner
+.vscode-test/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
