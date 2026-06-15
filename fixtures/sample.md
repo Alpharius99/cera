@@ -180,7 +180,11 @@ Alice -> Bob: Hello
 
 ___
 
-## Inline Extensions
+## Inline Extensions (UNSUPPORTED — negative cases)
+
+The supported flavor is CommonMark + GFM. The markup below is **not** GFM and must render
+as **literal text**, not formatting. These lines are negative/raw fidelity cases (Phase 7),
+not features to implement.
 
 Extra emphasis: ++inserted++ and ==marked==. Subscript: H~2~O. Superscript: E=mc^2^.
 

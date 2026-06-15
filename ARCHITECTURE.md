@@ -57,16 +57,22 @@ document-wide undo/redo for free.
 
 - Strict CSP: `default-src 'none'`, scripts only via nonce, styles only from `webview.cspSource`.
 - `localResourceRoots` limited to `media/`.
-- Rendered Markdown HTML is sanitized (DOMPurify) before injection.
+- markdown-it runs with `html: false`; raw HTML blocks are shown as raw editable source,
+  not rendered — avoids executing author-supplied HTML in the webview.
+- Rendered Markdown HTML is sanitized (DOMPurify) before injection (defense in depth).
 - The webview message listener trusts the host↔webview channel by design (sandboxed,
   isolated; no cross-origin sender exists). This is the documented VS Code webview pattern.
 
 ## Build & tooling
 
-- **Language:** TypeScript (extension host). Webview script may stay plain JS or compile to `media/`.
-- **Build:** `tsc` for the skeleton; **esbuild** bundling planned for Phase 10 packaging.
-- **Parsing/render:** markdown-it (+ source-map, GFM plugins), DOMPurify.
+- **Language:** TypeScript (extension host and webview).
+- **Build:** `tsc` for the host. The **webview bundle is built with esbuild from Phase 1**
+  (not deferred to packaging) because webview deps can't load ad hoc under the strict CSP;
+  Phase 10 adds `vsce` release packaging on top of the same bundler.
+- **Parsing/render:** markdown-it with `html: false` (+ source-map, GFM plugins). Raw HTML
+  blocks are shown as raw editable source, never rendered live. DOMPurify sanitizes the
+  rendered Markdown HTML as defense in depth (author-controlled link/image attributes).
 - **Source editor:** CodeMirror 6.
-- **Tests:** Vitest/Mocha (unit), `@vscode/test-electron` (integration), DOM tests (webview UI).
+- **Tests:** **Vitest** (unit, introduced in Phase 1), `@vscode/test-electron` (integration), DOM tests (webview UI).
 
 See [ROADMAP.md](ROADMAP.md) for the phased plan.

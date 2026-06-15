@@ -41,6 +41,11 @@ AvaloniaEdit. The VS Code equivalent is a **webview-based `CustomTextEditorProvi
 - Per-block source editing uses **CodeMirror 6** in the webview (syntax-highlighted,
   lightweight) — the analog of AvaloniaEdit. A `<textarea>` is the fallback if we want
   to defer CM6.
+- **Webview asset pipeline (from Phase 1, not Phase 10):** webview-side deps (markdown-it,
+  GFM plugins, DOMPurify, later CodeMirror) cannot be loaded ad hoc under the strict CSP
+  (`script-src 'nonce-…'`, no `unsafe-inline`/CDN). They are **bundled with esbuild** into a
+  single nonce-loaded `media/cera.bundle.js`. This bundler is set up in Phase 1 and reused
+  through Phase 10; Phase 10 only adds release packaging (`vsce`) on top of it.
 
 **Trade-off to revisit:** a webview custom editor gives full control over the
 reveal-on-focus model but does not reuse VS Code's native text editor inside blocks
@@ -70,21 +75,33 @@ builds green on push/PR.
 
 **Goal:** the default view shows fully rendered Markdown, not raw text.
 
+- **Asset pipeline (first task):** set up the **esbuild** webview bundle
+  (`media/cera.bundle.js`), loaded via nonce under the existing strict CSP. All webview
+  deps go through it — no CDN, no inline scripts.
 - Integrate **markdown-it** with a source-map plugin and GFM (tables, task lists,
   strikethrough, autolinks); parse the document into a list of top-level **blocks**
   (heading, paragraph, list, code fence, blockquote, table, HR, HTML, etc.).
-- Render each block to HTML in the webview, preserving block order and a stable block index.
-- Apply theme-native typography (headings, lists, code, tables, links) using VS Code CSS vars.
-- Sanitize rendered HTML (e.g. DOMPurify) before injection — webview CSP stays strict.
+- Render each renderable block to HTML in the webview, preserving block order and a stable block index.
+- **HTML-block policy (decided here — product/security, not polish):** raw HTML blocks are
+  **not** rendered as live HTML. They are shown as **raw, editable source** with
+  `raw-text-block` styling (consistent with Phase 7's "complete visibility"). Rationale:
+  rendering arbitrary author HTML in the webview is an XSS/fidelity risk; showing source is
+  safe, faithful, and editable. markdown-it's `html` option stays **off**.
+- Sanitize rendered Markdown HTML (DOMPurify) before injection — defense in depth even with
+  `html` off, since link/image attributes are still author-controlled.
 - **Fixture:** `fixtures/sample.md` (imported from the desktop repo) is the acceptance
-  artifact; extend it to exercise GFM tables, task lists, and strikethrough.
+  artifact. It is annotated: the "Inline Extensions" section (`++ins++`, `==mark==`, sub/sup,
+  emoji shortcodes) is **non-GFM** and must render as literal text — these double as Phase 7
+  negative/raw cases, not supported features.
+- **Test infrastructure (first gated phase — set up here):** add the test runner (**Vitest**),
+  an `npm test` script, and wire `npm test` into `.github/workflows/ci.yml`.
 - **Tests (gate):** unit tests for the block parser and source-map — for each block type,
   assert the parsed block list and that each block's reported line range round-trips to its
-  raw substring.
+  raw substring; assert HTML blocks and the non-GFM extensions render as literal source.
 
 **Done when:** opening `fixtures/sample.md` renders all supported block types (incl. GFM)
-correctly; editing the file elsewhere live-updates the rendered view; parser/source-map
-tests pass in CI.
+correctly and shows HTML/non-GFM content as literal source; editing the file elsewhere
+live-updates the rendered view; `npm test` runs parser/source-map tests green in CI.
 
 ---
 
@@ -121,9 +138,12 @@ corrupt or clobber unrelated content on commit.
 - `Ctrl/Cmd+↓` / `Ctrl/Cmd+↑` block navigation.
 - Active block shows: 3–4px accent left border (`--vscode-focusBorder`), and right-aligned
   controls — **↓ next**, **↑ previous**, **× close**.
+- **Tests (gate):** unit/DOM tests for the navigation state machine — Tab/Shift+Tab and
+  Ctrl/Cmd+↑/↓ move the active index correctly, commit-on-move fires, arrow keys stay within
+  a block, and wraparound/edge behavior at first/last block is correct.
 
 **Done when:** a user can move through the whole document via keyboard only, committing
-each block as they go; the active block is unmistakable.
+each block as they go; the active block is unmistakable; navigation tests pass in CI.
 
 ---
 
@@ -174,6 +194,9 @@ formatting-transform tests pass in CI.
   I, K) must `preventDefault` and be excluded from CodeMirror's keymap so they don't double-fire;
   bindings VS Code reserves (Cmd/Ctrl+S, Z, F) stay with VS Code. The matrix is a Phase-6
   deliverable, not an afterthought.
+- **Tests (gate):** DOM tests asserting each webview-owned chord applies exactly once and
+  calls `preventDefault` (no double-fire via CodeMirror), and that reserved chords are not
+  intercepted — one test row per entry in the ownership matrix.
 
 **Done when:** holding the modifier reveals shortcuts; chorded keys apply formatting; quick
 release shows nothing; no chord double-fires or is swallowed by VS Code/CodeMirror per the matrix.
@@ -189,8 +212,11 @@ release shows nothing; no chord double-fires or is swallowed by VS Code/CodeMirr
   shown as raw text with distinct `raw-text-block` styling, still navigable/editable.
 - **Special-case** blocks (e.g. Mermaid diagrams) → placeholder with click-to-edit hint.
 - Round-trip guarantee: open → no edits → save produces a byte-identical file.
+- **Tests (gate):** a fidelity corpus (built from `fixtures/sample.md` plus the non-GFM
+  negative cases and tricky edge cases) where each file asserts byte-for-byte round-trip,
+  and the classifier assigns each block to rendered / raw / special-case as expected.
 
-**Done when:** a fidelity test corpus round-trips byte-for-byte; unrenderable blocks are
+**Done when:** the fidelity corpus round-trips byte-for-byte in CI; unrenderable blocks are
 visible and editable.
 
 ---
@@ -203,8 +229,13 @@ visible and editable.
 - Verify light/dark/high-contrast themes via VS Code CSS variables.
 - Smooth expand/collapse and selection-bubble transitions.
 - Optional setting: max reading-column width.
+- **Tests (gate):** an automated guard that fails on hardcoded colors in `media/` (only
+  `var(--vscode-*)` tokens allowed), plus an integration smoke test that renders the editor
+  under light/dark/high-contrast variants and asserts it mounts without errors. (Pixel-level
+  visual checks remain manual.)
 
-**Done when:** the editor looks correct and cohesive across the built-in themes.
+**Done when:** the editor looks correct and cohesive across the built-in themes; the
+no-hardcoded-color guard and theme smoke test pass in CI.
 
 ---
 
@@ -213,9 +244,11 @@ visible and editable.
 **Goal:** consolidate coverage and add the layers that need a running VS Code, on top of
 the per-phase unit gates already written in Phases 1–8.
 
-> Note: unit tests are **not** deferred here. Each phase above ships its own unit gate
-> (parser/source-map in P1, splice & concurrent-edit safety in P2, command insertion in P4,
-> formatting transforms in P5). This phase adds the cross-cutting and host-driven tests.
+> Note: unit tests are **not** deferred here. Each phase above ships its own gate —
+> parser/source-map (P1), splice & concurrent-edit safety (P2), navigation state machine
+> (P3), command insertion (P4), formatting transforms (P5), shortcut-conflict behavior (P6),
+> fidelity corpus (P7), no-hardcoded-color guard (P8). This phase adds the cross-cutting and
+> host-driven tests on top.
 
 - **Integration:** `@vscode/test-electron` driving the custom editor end-to-end (open, edit,
   commit, save, undo, external-edit-while-open).
