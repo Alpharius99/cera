@@ -7,5 +7,6 @@ node_modules/**
 **/*.ts
 .gitignore
 .vscode-test/**
+fixtures/**
 ROADMAP.md
 ARCHITECTURE.md
