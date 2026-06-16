@@ -4,6 +4,10 @@ out/
 dist/
 *.vsix
 
+# esbuild webview bundle (built from src/webview)
+media/cera.bundle.js
+media/cera.bundle.js.map
+
 # VS Code extension test runner
 .vscode-test/
 

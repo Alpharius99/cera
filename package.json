@@ -45,14 +45,18 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build",
+    "build": "npm run compile && npm run build:webview",
     "compile": "tsc -p ./",
+    "build:webview": "node esbuild.js",
     "watch": "tsc -watch -p ./",
+    "watch:webview": "node esbuild.js --watch",
     "lint": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
+    "esbuild": "^0.23.1",
     "typescript": "^5.4.0"
   }
 }

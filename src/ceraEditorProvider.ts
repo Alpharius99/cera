@@ -69,7 +69,7 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
 
   private _getHtml(webview: vscode.Webview): string {
     const scriptUri: vscode.Uri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._context.extensionUri, "media", "cera.js"),
+      vscode.Uri.joinPath(this._context.extensionUri, "media", "cera.bundle.js"),
     );
     const styleUri: vscode.Uri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._context.extensionUri, "media", "cera.css"),
