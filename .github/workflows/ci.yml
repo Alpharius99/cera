@@ -6,8 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Full test suite, split into two parallel jobs:
+#   build      - compile (tsc) + webview bundle (esbuild) + the Vitest suite
+#                (unit, webview UI, fidelity corpus, and theme guard)
+#   integration - the @vscode/test-electron suite in a real Extension Host
 jobs:
   build:
+    name: Build & unit suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +25,7 @@ jobs:
       - run: npm test
 
   integration:
+    name: Integration (Extension Host)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

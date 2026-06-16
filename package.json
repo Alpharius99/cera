@@ -72,6 +72,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "npm run build && node ./out/test/runTest.js",
+    "test:all": "npm run build && npm test && node ./out/test/runTest.js",
     "lint": "tsc -p ./ --noEmit"
   },
   "devDependencies": {

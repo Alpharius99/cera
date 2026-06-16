@@ -36,8 +36,19 @@ VS Code handles document sync, dirty state, undo/redo, and save natively.
 ```bash
 npm install
 npm run compile        # or: npm run watch
-npm test               # run the Vitest unit suite (npm run test:watch to watch)
 ```
+
+### Tests
+
+| Command | Covers |
+|---------|--------|
+| `npm test` | Vitest suite: unit, webview UI (jsdom), fidelity corpus, theme guard |
+| `npm run test:integration` | `@vscode/test-electron` suite in a real Extension Host |
+| `npm run test:all` | build + Vitest suite + integration (the full gate) |
+
+CI runs the same gates on every push and PR — a `build` job (`npm run build`
+then `npm test`) and an `integration` job (the Extension Host suite under
+`xvfb`). See [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 There are two ways to run the extension.
 
