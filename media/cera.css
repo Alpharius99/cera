@@ -167,14 +167,13 @@ body {
 }
 
 /* Selection bubble: a floating formatting toolbar shown above a selection in
-   the active editor (#16). Semi-transparent until hovered, theme-native, and
-   anchored above the selection via the upward transform. */
+   the active editor (#16). Semi-transparent until hovered, theme-native. The
+   editor plugin places it above the selection, flipping below near the top. */
 .cera-bubble {
   position: absolute;
   z-index: 10;
   display: flex;
   padding: 4px;
-  transform: translateY(calc(-100% - 8px));
   background-color: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border, currentColor);
   border-radius: 6px;

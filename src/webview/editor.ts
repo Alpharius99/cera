@@ -99,7 +99,16 @@ const selectionBubble = ViewPlugin.fromClass(
         return;
       }
       const box = this.view.dom.getBoundingClientRect();
-      this.bubble.showAt(coords.left - box.left, coords.top - box.top);
+      // Reveal first so the bubble has measurable dimensions, then place it.
+      this.bubble.showAt(0, 0);
+      const height = this.bubble.dom.offsetHeight;
+      const gap = 8;
+      const left = Math.max(0, coords.left - box.left);
+      // Prefer above the selection; flip below when there is no room (e.g. a
+      // selection on the first line, which would otherwise clip off the top).
+      const above = coords.top - box.top - height - gap;
+      const top = above >= 0 ? above : coords.bottom - box.top + gap;
+      this.bubble.showAt(left, top);
     }
 
     private apply(name: TransformName): void {
