@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { buildCsp } from "./csp";
 
 // Cera's reveal-on-focus editor is a webview-based custom editor over the
 // raw Markdown text. Using CustomTextEditorProvider means VS Code gives us
@@ -26,15 +27,31 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
+    // The document's own folder is a local resource root so workspace-relative
+    // images can be loaded via asWebviewUri (#7).
+    const documentDir: vscode.Uri = vscode.Uri.joinPath(document.uri, "..");
     webviewPanel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this._context.extensionUri, "media")],
+      localResourceRoots: [
+        vscode.Uri.joinPath(this._context.extensionUri, "media"),
+        documentDir,
+      ],
     };
     webviewPanel.webview.html = this._getHtml(webviewPanel.webview);
 
-    // Push the current document text into the webview.
+    const baseUri: string = webviewPanel.webview.asWebviewUri(documentDir).toString();
+
+    // Push the current document text (plus image policy) into the webview.
     const updateWebview = (): void => {
-      webviewPanel.webview.postMessage({ type: "update", text: document.getText() });
+      const remoteMode: string = vscode.workspace
+        .getConfiguration("cera")
+        .get<string>("images.remote", "render");
+      webviewPanel.webview.postMessage({
+        type: "update",
+        text: document.getText(),
+        baseUri,
+        remoteMode,
+      });
     };
 
     // Keep the webview in sync when the underlying document changes
@@ -44,7 +61,16 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
         updateWebview();
       }
     });
-    webviewPanel.onDidDispose(() => changeSubscription.dispose());
+    // Re-render when the remote-image setting changes.
+    const configSubscription: vscode.Disposable = vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("cera.images.remote")) {
+        updateWebview();
+      }
+    });
+    webviewPanel.onDidDispose(() => {
+      changeSubscription.dispose();
+      configSubscription.dispose();
+    });
 
     // Edits coming back from the webview are applied as workspace edits so
     // VS Code records undo history and dirty state correctly.
@@ -80,8 +106,7 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+  <meta http-equiv="Content-Security-Policy" content="${buildCsp(webview.cspSource, nonce)}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
   <title>Cera</title>

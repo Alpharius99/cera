@@ -35,7 +35,7 @@ Reference link: [reference][ref].
 
 Collapsed reference: [ref].
 
-Inline image: ![Inline Alt](https://via.placeholder.com/100x40 "Placeholder").
+Inline image: ![Inline Alt](https://placehold.co/100x40 "Placeholder").
 
 Reference image: ![Ref Alt][img].
 
@@ -235,4 +235,4 @@ This paragraph uses reference-style links: visit [Example][ref] or see the image
 
 [ref]: https://example.com "Example Reference"
 
-[img]: https://via.placeholder.com/200x80 "Reference Image"
+[img]: https://placehold.co/200x80 "Reference Image"

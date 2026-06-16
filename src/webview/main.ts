@@ -7,6 +7,7 @@
 
 import { parseBlocks } from "./blocks";
 import { sanitizeHtml } from "./sanitize";
+import { applyImagePolicy, ImagePolicy } from "./images";
 
 interface VsCodeApi {
   postMessage(message: unknown): void;
@@ -16,6 +17,9 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
 const vscode = acquireVsCodeApi();
 const root = document.getElementById("cera-document") as HTMLElement;
+
+// Image policy supplied by the host (CSP base URI + remote-image setting).
+const policy: ImagePolicy = { remoteMode: "render", baseUri: "" };
 
 /** Render the document as an ordered list of sanitized block elements. */
 function render(text: string): void {
@@ -38,6 +42,8 @@ function render(text: string): void {
     // Sanitized: see sanitize.ts. markdown-it runs with html:false, and the
     // output is run through DOMPurify before injection (defense in depth).
     el.innerHTML = sanitizeHtml(block.html);
+    // Resolve/guard images per the host's CSP + remote-image policy (#7).
+    applyImagePolicy(el, policy);
     root.appendChild(el);
   }
 }
@@ -45,8 +51,19 @@ function render(text: string): void {
 // Messages arrive over VS Code's trusted host<->webview channel (the webview is
 // sandboxed and isolated; there is no cross-origin sender to validate).
 window.addEventListener("message", (event: MessageEvent) => {
-  const message = event.data as { type: string; text?: string };
+  const message = event.data as {
+    type: string;
+    text?: string;
+    baseUri?: string;
+    remoteMode?: string;
+  };
   if (message.type === "update" && typeof message.text === "string") {
+    if (typeof message.baseUri === "string") {
+      policy.baseUri = message.baseUri;
+    }
+    if (message.remoteMode === "render" || message.remoteMode === "placeholder") {
+      policy.remoteMode = message.remoteMode;
+    }
     render(message.text);
   }
 });

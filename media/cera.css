@@ -86,6 +86,19 @@ body {
   border-radius: 4px;
 }
 
+/* Click-to-load placeholder for remote images (cera.images.remote = placeholder). */
+.cera-remote-image {
+  display: inline-block;
+  padding: 6px 12px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background-color: var(--vscode-button-secondaryBackground, transparent);
+  border: 1px dashed var(--vscode-editorWidget-border, currentColor);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .cera-empty {
   opacity: 0.6;
 }

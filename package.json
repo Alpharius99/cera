@@ -42,7 +42,22 @@
         "command": "cera.openWith",
         "title": "Cera: Open Current File in Cera Editor"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Cera",
+      "properties": {
+        "cera.images.remote": {
+          "type": "string",
+          "enum": ["render", "placeholder"],
+          "enumDescriptions": [
+            "Load remote (https) images directly.",
+            "Show a click-to-load placeholder instead of loading remote images."
+          ],
+          "default": "render",
+          "description": "How Cera handles remote (https) images. Local and inline (data:) images always render."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
