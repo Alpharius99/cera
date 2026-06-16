@@ -13,6 +13,32 @@ const md = new MarkdownIt({ html: false, linkify: true }).use(taskLists);
 // below. The render instance stays `html: false` — that is the policy (#6).
 const classifier = new MarkdownIt({ html: true, linkify: true });
 
+// Diagram fences are special-case placeholders (#20); the v1 diagram handling
+// policy itself is decided separately (#31).
+const DIAGRAM_LANGS = new Set(["mermaid", "plantuml"]);
+
+/** How a block is presented: normally rendered, shown as raw source, or a
+ *  special-case placeholder. Every block receives exactly one classification. */
+export type BlockKind = "rendered" | "raw" | "special";
+
+/** One top-level Markdown block: a unit with a stable index, range, and kind. */
+export interface Block {
+  /** Position in document order, starting at 0. */
+  index: number;
+  /** Block type, e.g. heading_open, fence, html_block, front_matter, ref_definition. */
+  type: string;
+  /** Classification used for rendering and complete-visibility guarantees. */
+  kind: BlockKind;
+  /** Source line range [start, end) — 0-based, end-exclusive. */
+  map: [number, number];
+  /** Raw source text for the block (the exact lines in `map`). */
+  raw: string;
+  /** Rendered HTML for the block (unsanitized; sanitize before injecting). */
+  html: string;
+}
+
+type PendingBlock = Omit<Block, "index">;
+
 function htmlBlockStartLines(src: string): Set<number> {
   const starts = new Set<number>();
   for (const token of classifier.parse(src, {})) {
@@ -23,40 +49,66 @@ function htmlBlockStartLines(src: string): Set<number> {
   return starts;
 }
 
-/** Raw HTML / special-case content shown as faithful, non-executable source. */
+/** Raw / special-case content shown as faithful, non-executable source. */
 function rawTextBlock(raw: string): string {
   return `<pre class="raw-text-block">${md.utils.escapeHtml(raw)}</pre>`;
 }
 
-/** One top-level Markdown block: a rendered unit with a stable index + range. */
-export interface Block {
-  /** Position in document order, starting at 0. */
-  index: number;
-  /** markdown-it token type of the opening token (e.g. heading_open, fence). */
-  type: string;
-  /** Source line range [start, end) — 0-based, end-exclusive. */
-  map: [number, number];
-  /** Raw source text for the block (the exact lines in `map`). */
-  raw: string;
-  /** Rendered HTML for the block (unsanitized; sanitize before injecting). */
-  html: string;
+/** Special-case placeholder for a diagram fence: a label plus its source. */
+function diagramPlaceholder(raw: string, lang: string): string {
+  const safeLang = md.utils.escapeHtml(lang);
+  return (
+    `<div class="cera-diagram" data-diagram-lang="${safeLang}">` +
+    `<div class="cera-diagram-label">Diagram: ${safeLang}</div>` +
+    rawTextBlock(raw) +
+    `</div>`
+  );
+}
+
+/** Leading YAML front matter end line (exclusive), or 0 if there is none. */
+function frontMatterEnd(lines: string[]): number {
+  if (lines[0] !== "---") {
+    return 0;
+  }
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === "---" || lines[i] === "...") {
+      return i + 1;
+    }
+  }
+  return 0;
+}
+
+function isReferenceDefinition(line: string): boolean {
+  return /^ {0,3}\[[^\]]+\]:/.test(line);
 }
 
 /**
- * Parse Markdown into an ordered list of top-level blocks, each carrying its
- * source range (verified round-trippable by the #4 spike) and rendered HTML.
+ * Parse Markdown into an ordered list of top-level blocks. Every block carries a
+ * stable index, its source range (round-trippable per the #4 spike), and a
+ * classification (#20): `rendered` Markdown, `raw` source (front matter, raw
+ * HTML, link reference definitions), or a `special` placeholder (diagram fences).
  *
- * Tokens are grouped by nesting depth: a block runs from a depth-0 token until
- * the depth returns to 0, so containers (lists, blockquotes, tables) and their
- * children form a single block. Constructs that emit no token (link reference
- * definitions) are simply absent from the model; special-case raw classification
- * is handled separately (#20).
+ * Front matter is stripped before markdown-it so the closing `---` is not
+ * misread as a setext underline, and any source line not claimed by a token
+ * block (e.g. reference definitions) is emitted as a raw block — so no content
+ * is hidden.
  */
 export function parseBlocks(src: string): Block[] {
   const lines = src.split("\n");
-  const tokens = md.parse(src, {});
-  const htmlStarts = htmlBlockStartLines(src);
-  const blocks: Block[] = [];
+  const pending: PendingBlock[] = [];
+
+  // Front matter -> a single raw block at the top.
+  const fmEnd = frontMatterEnd(lines);
+  if (fmEnd > 0) {
+    const raw = lines.slice(0, fmEnd).join("\n");
+    pending.push({ type: "front_matter", kind: "raw", map: [0, fmEnd], raw, html: rawTextBlock(raw) });
+  }
+
+  // Parse the body (after any front matter); offset token ranges back to source.
+  const body = lines.slice(fmEnd).join("\n");
+  const tokens = md.parse(body, {});
+  const htmlStarts = htmlBlockStartLines(body);
+  const covered = new Set<number>();
 
   let depth = 0;
   let start = -1;
@@ -69,22 +121,50 @@ export function parseBlocks(src: string): Block[] {
       const group = tokens.slice(start, i + 1);
       const head = group[0];
       if (head.map) {
-        const [s, e] = head.map;
+        const s = head.map[0] + fmEnd;
+        const e = head.map[1] + fmEnd;
+        for (let ln = s; ln < e; ln++) {
+          covered.add(ln);
+        }
         const raw = lines.slice(s, e).join("\n");
-        // Raw HTML blocks are shown as faithful, non-executable source rather
-        // than rendered (#6). Everything else renders normally.
-        const isRawHtml = htmlStarts.has(s);
-        blocks.push({
-          index: blocks.length,
-          type: isRawHtml ? "html_block" : head.type,
-          map: [s, e],
-          raw,
-          html: isRawHtml ? rawTextBlock(raw) : md.renderer.render(group, md.options, {}),
-        });
+        const lang = head.type === "fence" ? head.info.trim().split(/\s+/)[0] : "";
+        if (htmlStarts.has(head.map[0])) {
+          pending.push({ type: "html_block", kind: "raw", map: [s, e], raw, html: rawTextBlock(raw) });
+        } else if (DIAGRAM_LANGS.has(lang)) {
+          pending.push({ type: "fence", kind: "special", map: [s, e], raw, html: diagramPlaceholder(raw, lang) });
+        } else {
+          pending.push({
+            type: head.type,
+            kind: "rendered",
+            map: [s, e],
+            raw,
+            html: md.renderer.render(group, md.options, {}),
+          });
+        }
       }
       start = -1;
     }
   }
 
-  return blocks;
+  // Any non-blank line not claimed by a token block (e.g. link reference
+  // definitions) becomes a raw block so nothing is hidden. Consecutive
+  // uncovered lines are grouped into one block.
+  let runStart = -1;
+  for (let ln = fmEnd; ln <= lines.length; ln++) {
+    const uncovered = ln < lines.length && lines[ln].trim() !== "" && !covered.has(ln);
+    if (uncovered) {
+      if (runStart === -1) {
+        runStart = ln;
+      }
+    } else if (runStart !== -1) {
+      const raw = lines.slice(runStart, ln).join("\n");
+      const type = isReferenceDefinition(lines[runStart]) ? "ref_definition" : "raw_text";
+      pending.push({ type, kind: "raw", map: [runStart, ln], raw, html: rawTextBlock(raw) });
+      runStart = -1;
+    }
+  }
+
+  // Order by source position and assign stable indexes.
+  pending.sort((a, b) => a.map[0] - b.map[0]);
+  return pending.map((block, index) => ({ index, ...block }));
 }

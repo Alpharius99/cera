@@ -39,6 +39,7 @@ function render(text: string): void {
     el.className = "cera-block";
     el.dataset.blockIndex = String(block.index);
     el.dataset.blockType = block.type;
+    el.dataset.blockKind = block.kind;
     // Sanitized: see sanitize.ts. markdown-it runs with html:false, and the
     // output is run through DOMPurify before injection (defense in depth).
     el.innerHTML = sanitizeHtml(block.html);
