@@ -1,0 +1,47 @@
+name: Release
+
+# Tag-triggered release: build the VSIX, attach it to a GitHub Release, and
+# publish to the marketplaces when the corresponding tokens are configured.
+# Manual VSIX builds (no release) live in package.yml.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, release, publish
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install
+      # Gate the release on the unit suite (the commit's CI already ran the full
+      # suite including integration).
+      - run: npm run build
+      - run: npm test
+      - run: npm run package
+
+      - name: Create GitHub Release with the VSIX
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cera.vsix
+          generate_release_notes: true
+
+      # Publishing runs only when the token secret is present; otherwise it is a
+      # documented manual step (see RELEASING.md).
+      - name: Publish to VS Code Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
+        run: npx --yes @vscode/vsce publish --packagePath cera.vsix
+
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx --yes ovsx publish cera.vsix --pat "$OVSX_PAT"

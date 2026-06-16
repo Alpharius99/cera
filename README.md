@@ -99,6 +99,8 @@ Manual visual QA that the automated guard can't cover (run before a release):
 - [ARCHITECTURE.md](ARCHITECTURE.md) — technical design and VS Code mapping
 - [docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md) — source-project
   reference map for porting behavior from MarkItDown
+- [CHANGELOG.md](CHANGELOG.md) — release notes
+- [RELEASING.md](RELEASING.md) — how to cut a release
 
 ## License
 

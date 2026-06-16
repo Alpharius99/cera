@@ -1,11 +1,9 @@
 name: Package
 
-# Repeatable VSIX packaging: run manually, or on a version tag. Publishing and
-# changelog/release notes are handled separately (#30).
+# On-demand VSIX build (artifact only). Tag-triggered releases — building,
+# attaching the VSIX to a GitHub Release, and publishing — live in release.yml.
 on:
   workflow_dispatch:
-  push:
-    tags: ["v*"]
 
 jobs:
   vsix:
