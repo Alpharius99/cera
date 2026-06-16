@@ -72,6 +72,20 @@ body {
   max-width: 100%;
 }
 
+/* Raw / special-case source (raw HTML, and later front matter, ref defs):
+   shown verbatim and monospaced so it reads as source, never rendered. */
+.raw-text-block {
+  margin: 0;
+  padding: 12px 16px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+  background-color: var(--vscode-textCodeBlock-background);
+  border-left: 3px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 4px;
+}
+
 .cera-empty {
   opacity: 0.6;
 }
