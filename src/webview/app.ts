@@ -40,9 +40,9 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     applyImagePolicy(el, policy);
   }
 
-  // Collapse the active editor back to the rendered view. Edits are discarded
-  // for now; committing on close lands in #9.
-  function closeActive(): void {
+  // Collapse the active editor back to the rendered view without committing
+  // (used by re-render, and as the final step of a commit).
+  function destroyActive(): void {
     if (!active) {
       return;
     }
@@ -52,8 +52,27 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     active = null;
   }
 
+  // Commit the active block's edits to the document, then collapse. If the text
+  // is unchanged, just collapse. The host applies the splice and echoes an
+  // update, which re-renders the block with its committed content (#9).
+  function commitActive(): void {
+    if (!active) {
+      return;
+    }
+    const text = active.editor.getText();
+    if (text !== active.block.raw) {
+      host.postMessage({
+        type: "commit",
+        startLine: active.block.map[0],
+        endLine: active.block.map[1],
+        text,
+      });
+    }
+    destroyActive();
+  }
+
   function render(text: string): void {
-    closeActive();
+    destroyActive();
     root.textContent = "";
 
     blocks = parseBlocks(text);
@@ -78,27 +97,32 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
 
   // Reveal-on-focus: click a rendered block to edit its raw Markdown source.
   function openEditor(blockEl: HTMLElement, block: Block): void {
-    closeActive();
     const editor = createEditor(block.raw, nonce);
     blockEl.classList.add("cera-block--editing");
     blockEl.replaceChildren(editor.dom);
+    // Escape commits and collapses (single-block mode; split mode is #11).
+    editor.dom.addEventListener("keydown", (event) => {
+      if ((event as KeyboardEvent).key === "Escape") {
+        event.preventDefault();
+        commitActive();
+      }
+    });
     editor.focus();
     active = { el: blockEl, editor, block };
   }
 
   const onClick = (event: Event): void => {
     const blockEl = (event.target as HTMLElement).closest<HTMLElement>(".cera-block");
-    if (!blockEl) {
-      // Clicked outside any block — collapse the open editor.
-      closeActive();
-      return;
-    }
     if (blockEl === active?.el) {
       return;
     }
-    const block = blocks[Number(blockEl.dataset.blockIndex)];
-    if (block) {
-      openEditor(blockEl, block);
+    // Clicking elsewhere (another block or outside) commits the open editor.
+    commitActive();
+    if (blockEl) {
+      const block = blocks[Number(blockEl.dataset.blockIndex)];
+      if (block) {
+        openEditor(blockEl, block);
+      }
     }
   };
   root.addEventListener("click", onClick);
@@ -130,6 +154,6 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
   return () => {
     target.removeEventListener("message", onMessage);
     root.removeEventListener("click", onClick);
-    closeActive();
+    destroyActive();
   };
 }

@@ -50,6 +50,23 @@ describe("Cera custom editor lifecycle", function () {
     assert.ok(doc.getText().includes("Inserted line."), "external edit should be reflected");
   });
 
+  it("commits a block splice into the document via WorkspaceEdit (#9)", async () => {
+    const original = "# Title\n\nBody.\n";
+    const uri = createTempMarkdown(original);
+    await vscode.commands.executeCommand("vscode.openWith", uri, VIEW_TYPE);
+    const doc = await vscode.workspace.openTextDocument(uri);
+
+    // The same range splice _commitBlock performs: replace the heading block.
+    // The edit goes through WorkspaceEdit, so VS Code records undo history and
+    // dirty state (undo itself is native and verified manually — the headless
+    // test host does not process the `undo` command).
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(uri, new vscode.Range(0, 0, 0, doc.lineAt(0).text.length), "# Changed");
+    assert.ok(await vscode.workspace.applyEdit(edit));
+    assert.strictEqual(doc.getText(), "# Changed\n\nBody.\n");
+    assert.ok(doc.isDirty, "commit should mark the document dirty");
+  });
+
   it("tracks dirty state and saves while the Cera editor owns the document", async () => {
     const uri = createTempMarkdown("# Save\n");
     await vscode.commands.executeCommand("vscode.openWith", uri, VIEW_TYPE);

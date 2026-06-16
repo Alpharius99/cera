@@ -72,24 +72,44 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
       configSubscription.dispose();
     });
 
-    // Edits coming back from the webview are applied as workspace edits so
-    // VS Code records undo history and dirty state correctly.
-    webviewPanel.webview.onDidReceiveMessage((message: { type: string; text?: string }) => {
-      if (message.type === "edit" && typeof message.text === "string") {
-        this._replaceDocument(document, message.text);
-      } else if (message.type === "ready") {
-        updateWebview();
-      }
-    });
+    // Block commits coming back from the webview are spliced into the document
+    // as workspace edits, so VS Code records undo history and dirty state.
+    webviewPanel.webview.onDidReceiveMessage(
+      (message: { type: string; text?: string; startLine?: number; endLine?: number }) => {
+        if (
+          message.type === "commit" &&
+          typeof message.text === "string" &&
+          typeof message.startLine === "number" &&
+          typeof message.endLine === "number"
+        ) {
+          this._commitBlock(document, message.startLine, message.endLine, message.text);
+        } else if (message.type === "ready") {
+          updateWebview();
+        }
+      },
+    );
   }
 
-  private _replaceDocument(document: vscode.TextDocument, newText: string): Thenable<boolean> {
-    const edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
-    const fullRange: vscode.Range = new vscode.Range(
-      document.positionAt(0),
-      document.positionAt(document.getText().length),
+  // Replace the source lines [startLine, endLine) with `text`. The range covers
+  // the block's content (col 0 of the first line to the end of the last line),
+  // leaving the surrounding newlines intact. Stale/out-of-bounds ranges are
+  // rejected here; version-based rebasing of concurrent edits is #10.
+  private _commitBlock(
+    document: vscode.TextDocument,
+    startLine: number,
+    endLine: number,
+    text: string,
+  ): Thenable<boolean> | undefined {
+    const lastLine: number = endLine - 1;
+    if (startLine < 0 || lastLine < startLine || lastLine >= document.lineCount) {
+      return undefined;
+    }
+    const range: vscode.Range = new vscode.Range(
+      new vscode.Position(startLine, 0),
+      new vscode.Position(lastLine, document.lineAt(lastLine).text.length),
     );
-    edit.replace(document.uri, fullRange, newText);
+    const edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, range, text);
     return vscode.workspace.applyEdit(edit);
   }
 

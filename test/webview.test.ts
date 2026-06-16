@@ -143,6 +143,65 @@ describe("reveal-on-focus block editing (#8)", () => {
   });
 });
 
+describe("block commit (#9)", () => {
+  // Fake editor whose reported text is controllable, to simulate user edits.
+  let edited: string;
+  function mountWithEditedText(): void {
+    dispose();
+    dispose = mountWebview(root, host, {
+      createEditor: () => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => edited, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+
+  it("commits edited text with the block's range on Escape", () => {
+    mountWithEditedText();
+    update("# One\n\nTwo\n");
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    edited = "# One";
+    block0.click();
+    edited = "# Edited";
+    block0
+      .querySelector(".fake-editor")!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({
+      type: "commit",
+      startLine: 0,
+      endLine: 1,
+      text: "# Edited",
+    });
+  });
+
+  it("commits the open block when another block is clicked", () => {
+    mountWithEditedText();
+    update("# One\n\nTwo\n");
+    edited = "Two";
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!.click();
+    edited = "Two edited";
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({
+      startLine: 2,
+      endLine: 3,
+      text: "Two edited",
+    });
+  });
+
+  it("does not commit when the text is unchanged", () => {
+    mountWithEditedText();
+    update("# One\n");
+    edited = "# One";
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+    root.click();
+
+    expect(posted.some((m) => m.type === "commit")).toBe(false);
+  });
+});
+
 describe("webview isolation (#26)", () => {
   it("stops handling messages after dispose (no global leakage)", () => {
     dispose();
