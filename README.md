@@ -64,6 +64,21 @@ code --install-extension cera-<version>.vsix
 
 Uninstall again with `code --uninstall-extension Alpharius99.cera`.
 
+## Theming
+
+Cera's webview is theme-native: all styling derives from `var(--vscode-*)`
+tokens, which VS Code supplies for light, dark, and high-contrast themes. This
+is enforced in CI — `test/theme.test.ts` rejects hardcoded colors in `media/`
+and requires every CSS variable to be a `--vscode-*` token.
+
+Manual visual QA that the automated guard can't cover (run before a release):
+
+- Open `fixtures/sample.md` in **Light+**, **Dark+**, and a **High Contrast**
+  theme and confirm text, code blocks, blockquotes, tables, `raw-text-block`
+  source, diagram placeholders, and the remote-image chip all remain legible.
+- Live theme rendering will also be exercised by the custom-editor / webview
+  integration tests (#25, #26).
+
 ## Documentation
 
 - [ROADMAP.md](ROADMAP.md) — phased build plan
