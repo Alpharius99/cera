@@ -157,23 +157,43 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     }
   }
 
+  // Build one right-aligned control that mirrors a keyboard action (#13). Native
+  // buttons are focusable and activatable; aria-label names them for screen
+  // readers. stopPropagation keeps the click from re-reaching the root handler
+  // after navigation has already detached this button.
+  function makeControl(label: string, glyph: string, onActivate: () => void): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "cera-block-control";
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.textContent = glyph;
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onActivate();
+    });
+    return button;
+  }
+
   // Reveal-on-focus: click a rendered block to edit its raw Markdown source.
   function openEditor(blockEl: HTMLElement, block: Block): void {
     const editor = createEditor(block.raw, nonce);
     blockEl.classList.add("cera-block--editing");
 
-    // Explicit-exit affordance: always commits and collapses (even when split).
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "cera-block-close";
-    closeButton.title = "Done editing";
-    closeButton.textContent = "×";
-    closeButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      exitEditor(true);
-    });
+    // Right-aligned controls that mirror the keyboard navigation/exit keys (#13):
+    // previous (Shift+Tab / Ctrl+↑), next (Tab / Ctrl+↓), and close, which always
+    // commits and collapses — even when split — just like the × / Escape path.
+    const controls = document.createElement("div");
+    controls.className = "cera-block-controls";
+    const closeButton = makeControl("Done editing", "×", () => exitEditor(true));
+    closeButton.classList.add("cera-block-close");
+    controls.append(
+      makeControl("Previous block", "↑", () => navigate(-1)),
+      makeControl("Next block", "↓", () => navigate(1)),
+      closeButton,
+    );
 
-    blockEl.replaceChildren(editor.dom, closeButton);
+    blockEl.replaceChildren(editor.dom, controls);
 
     // Navigation/exit keys are handled in the capture phase so they win over
     // CodeMirror (an inner element). Tab/Shift+Tab and Ctrl/Cmd+↑/↓ move between
