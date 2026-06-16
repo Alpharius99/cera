@@ -10,11 +10,14 @@
 // CodeMirror injects for its themes (#8). `style-src-attr 'unsafe-inline'` is the
 // narrow allowance CodeMirror needs for its inline cursor/selection styles — it
 // only affects style attributes, leaving `script-src` strictly nonce-only.
+// `font-src` allows the bundled VS Code codicon font that renders the native
+// active-block controls (#35); it is served from the extension's own cspSource.
 export function buildCsp(cspSource: string, nonce: string): string {
   return (
     [
       "default-src 'none'",
       `img-src ${cspSource} data: https:`,
+      `font-src ${cspSource}`,
       `style-src ${cspSource} 'nonce-${nonce}'`,
       "style-src-attr 'unsafe-inline'",
       `script-src 'nonce-${nonce}'`,

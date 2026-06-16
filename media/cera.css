@@ -110,37 +110,56 @@ body {
 }
 
 /* Active (reveal-on-focus) block: the rendered view is replaced by a source
-   editor (CodeMirror, or the textarea contingency). A focus-border accent makes
-   the active block unmistakable without persistent editor chrome (#13). */
+   editor (CodeMirror, or the textarea contingency). It reads as a native inline
+   widget — the workbench widget background plus a focus-border accent — so the
+   active block is unmistakable without persistent editor chrome (#13, #35). */
 .cera-block--editing {
   position: relative;
+  margin: 1.25em 0;
+  padding: 12px 10px;
   border-left: 3px solid var(--vscode-focusBorder);
-  padding-left: 10px;
+  border-top: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-bottom: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 0 4px 4px 0;
+  background-color: var(--vscode-editorWidget-background);
 }
 
 /* Right-aligned controls shown while editing: previous, next, and close. They
-   mirror the keyboard navigation/exit keys (Tab / Shift+Tab / Escape, #13). */
+   mirror the keyboard navigation/exit keys (Tab / Shift+Tab / Escape, #13) and
+   are styled as native VS Code toolbar icon-buttons with codicons (#35). */
 .cera-block-controls {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 4px;
+  right: 4px;
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .cera-block-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
-  line-height: 1;
+  padding: 0;
   cursor: pointer;
-  color: var(--vscode-foreground);
-  background-color: var(--vscode-button-secondaryBackground, transparent);
-  border: 1px solid var(--vscode-editorWidget-border, currentColor);
-  border-radius: 4px;
+  color: var(--vscode-icon-foreground);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
 }
 
 .cera-block-control:hover {
-  background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-button-secondaryBackground, transparent));
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.cera-block-control:active {
+  background-color: var(--vscode-toolbar-activeBackground, var(--vscode-toolbar-hoverBackground));
+}
+
+.cera-block-control:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
 }
 
 .cera-block .cm-editor {

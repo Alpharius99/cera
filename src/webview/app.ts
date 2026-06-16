@@ -157,17 +157,21 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     }
   }
 
-  // Build one right-aligned control that mirrors a keyboard action (#13). Native
-  // buttons are focusable and activatable; aria-label names them for screen
-  // readers. stopPropagation keeps the click from re-reaching the root handler
-  // after navigation has already detached this button.
-  function makeControl(label: string, glyph: string, onActivate: () => void): HTMLButtonElement {
+  // Build one right-aligned control that mirrors a keyboard action (#13). The
+  // glyph is a VS Code codicon (#35) so the controls read as native widget chrome.
+  // Native buttons are focusable and activatable; aria-label names them for screen
+  // readers (the icon itself is aria-hidden). stopPropagation keeps the click from
+  // re-reaching the root handler after navigation has already detached this button.
+  function makeControl(label: string, icon: string, onActivate: () => void): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "cera-block-control";
     button.title = label;
     button.setAttribute("aria-label", label);
-    button.textContent = glyph;
+    const glyph = document.createElement("i");
+    glyph.className = `codicon codicon-${icon}`;
+    glyph.setAttribute("aria-hidden", "true");
+    button.appendChild(glyph);
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       onActivate();
@@ -185,11 +189,11 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     // commits and collapses — even when split — just like the × / Escape path.
     const controls = document.createElement("div");
     controls.className = "cera-block-controls";
-    const closeButton = makeControl("Done editing", "×", () => exitEditor(true));
+    const closeButton = makeControl("Done editing", "close", () => exitEditor(true));
     closeButton.classList.add("cera-block-close");
     controls.append(
-      makeControl("Previous block", "↑", () => navigate(-1)),
-      makeControl("Next block", "↓", () => navigate(1)),
+      makeControl("Previous block", "arrow-up", () => navigate(-1)),
+      makeControl("Next block", "arrow-down", () => navigate(1)),
       closeButton,
     );
 
