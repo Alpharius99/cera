@@ -1,9 +1,11 @@
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, ViewPlugin, ViewUpdate, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { slashCompletions } from "./slash";
+import { createSelectionBubble, SelectionBubble } from "./bubble";
+import { TRANSFORMS, TransformName } from "./transforms";
 
 /** A per-block source editor, abstracted so the webview wiring can be tested
  *  without constructing a real CodeMirror view. */
@@ -20,6 +22,9 @@ export interface BlockEditor {
 // (CSP-safe via EditorView.cspNonce); colors come from VS Code theme tokens.
 const ceraTheme = EditorView.theme({
   "&": {
+    // position:relative so the selection bubble (#16), appended to the editor
+    // root, is positioned within the editor rather than the page.
+    position: "relative",
     backgroundColor: "var(--vscode-editor-background)",
     color: "var(--vscode-editor-foreground)",
   },
@@ -53,6 +58,71 @@ const ceraTheme = EditorView.theme({
   },
 });
 
+// Delay before the selection bubble appears after a selection settles (#16).
+const BUBBLE_DELAY_MS = 200;
+
+// Selection bubble: a floating formatting toolbar shown above a non-empty
+// selection (#16). The bubble DOM lives in bubble.ts; this plugin owns the
+// CodeMirror-specific glue — debounced show/hide, positioning, and applying a
+// shared transform (#17) while restoring the selection.
+const selectionBubble = ViewPlugin.fromClass(
+  class {
+    private readonly bubble: SelectionBubble;
+    private timer: ReturnType<typeof setTimeout> | undefined;
+
+    constructor(private readonly view: EditorView) {
+      this.bubble = createSelectionBubble((name) => this.apply(name));
+      view.dom.appendChild(this.bubble.dom);
+    }
+
+    update(update: ViewUpdate): void {
+      if (update.selectionSet || update.docChanged || update.focusChanged) {
+        this.schedule();
+      }
+    }
+
+    private schedule(): void {
+      clearTimeout(this.timer);
+      const selection = this.view.state.selection.main;
+      if (selection.empty || !this.view.hasFocus) {
+        this.bubble.hide();
+        return;
+      }
+      this.timer = setTimeout(() => this.position(), BUBBLE_DELAY_MS);
+    }
+
+    private position(): void {
+      const selection = this.view.state.selection.main;
+      const coords = this.view.coordsAtPos(selection.from);
+      if (!coords) {
+        this.bubble.hide();
+        return;
+      }
+      const box = this.view.dom.getBoundingClientRect();
+      this.bubble.showAt(coords.left - box.left, coords.top - box.top);
+    }
+
+    private apply(name: TransformName): void {
+      const selection = this.view.state.selection.main;
+      if (selection.empty) {
+        return;
+      }
+      const doc = this.view.state.doc.toString();
+      const result = TRANSFORMS[name](doc, { from: selection.from, to: selection.to });
+      this.view.dispatch({
+        changes: { from: 0, to: doc.length, insert: result.text },
+        selection: { anchor: result.selection.from, head: result.selection.to },
+      });
+      this.view.focus();
+    }
+
+    destroy(): void {
+      clearTimeout(this.timer);
+      this.bubble.destroy();
+    }
+  },
+);
+
 /**
  * Create a CodeMirror 6 source editor seeded with `doc`. The CSP nonce lets
  * CodeMirror inject its theme styles under the strict webview CSP (#8).
@@ -72,6 +142,7 @@ export function createBlockEditor(doc: string, nonce: string): BlockEditor {
           EditorView.lineWrapping,
           EditorView.cspNonce.of(nonce),
           autocompletion({ override: [slashCompletions], activateOnTyping: true, icons: false }),
+          selectionBubble,
           ceraTheme,
         ],
       }),

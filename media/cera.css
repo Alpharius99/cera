@@ -166,6 +166,60 @@ body {
   font-size: var(--vscode-editor-font-size, 13px);
 }
 
+/* Selection bubble: a floating formatting toolbar shown above a selection in
+   the active editor (#16). Semi-transparent until hovered, theme-native, and
+   anchored above the selection via the upward transform. */
+.cera-bubble {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  padding: 4px;
+  transform: translateY(calc(-100% - 8px));
+  background-color: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, transparent);
+  opacity: 0.6;
+  transition: opacity 0.1s ease;
+}
+
+.cera-bubble:hover {
+  opacity: 1;
+}
+
+.cera-bubble[hidden] {
+  display: none;
+}
+
+.cera-bubble-group {
+  display: flex;
+  gap: 2px;
+}
+
+.cera-bubble-group + .cera-bubble-group {
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid var(--vscode-editorWidget-border, currentColor);
+}
+
+.cera-bubble-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--vscode-icon-foreground);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+}
+
+.cera-bubble-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
 .cera-fallback-editor {
   width: 100%;
   min-height: 4em;
