@@ -30,9 +30,12 @@ AvaloniaEdit. The VS Code equivalent is a **webview-based `CustomTextEditorProvi
 
 - VS Code owns the `TextDocument` → free document sync, dirty tracking, **undo/redo, and save**.
 - The webview owns rendering (rendered blocks) and per-block source editing.
-- Parsing uses **markdown-it** (the same engine as VS Code's built-in preview) with a
-  source-map plugin so each rendered block knows its line range in the raw text — this
-  is the analog of Markdig's `UsePreciseSourceLocation()`.
+- Parsing uses **markdown-it** (the same engine as VS Code's built-in preview). Block-level
+  tokens natively carry a `.map = [startLine, endLine]` line range (this is what VS Code's
+  own preview-sync uses) — the analog of Markdig's `UsePreciseSourceLocation()`. No extra
+  plugin is required for block ranges; **the precision of these ranges is validated by a
+  Phase 1 spike** (see below) because some constructs (loose lists, nested blockquotes, GFM
+  tables, raw HTML, front matter) can report coarse or missing maps.
 - **Markdown flavor — decided: CommonMark + GFM** (tables, task lists, strikethrough,
   autolinks). The desktop app already supports tables and checklists, and GFM features
   drive later slash commands (`/table`, `/checklist`) and selection-bubble actions
@@ -78,9 +81,16 @@ builds green on push/PR.
 - **Asset pipeline (first task):** set up the **esbuild** webview bundle
   (`media/cera.bundle.js`), loaded via nonce under the existing strict CSP. All webview
   deps go through it — no CDN, no inline scripts.
-- Integrate **markdown-it** with a source-map plugin and GFM (tables, task lists,
-  strikethrough, autolinks); parse the document into a list of top-level **blocks**
+- Integrate **markdown-it** with GFM (tables, task lists, strikethrough, autolinks) and use
+  block tokens' native `.map` ranges; parse the document into a list of top-level **blocks**
   (heading, paragraph, list, code fence, blockquote, table, HR, HTML, etc.).
+- **Source-map spike (selection gate — do first, blocks Phase 2):** verify that every block
+  type in `fixtures/sample.md` (esp. loose lists, nested blockquotes, GFM tables, raw HTML,
+  front matter) yields a `.map` range whose raw substring round-trips exactly. Define the
+  **fallback** for any construct with coarse/missing maps: treat that block as **atomic**
+  (re-derive its range by re-tokenizing on commit, edit the whole block, never splice a
+  partial range). If `.map` proves too coarse across the board, the gate's exit criterion is
+  to adopt an alternative ranging approach before committing to Phase 2's splice design.
 - Render each renderable block to HTML in the webview, preserving block order and a stable block index.
 - **HTML-block policy (decided here — product/security, not polish):** raw HTML blocks are
   **not** rendered as live HTML. They are shown as **raw, editable source** with
@@ -89,6 +99,13 @@ builds green on push/PR.
   safe, faithful, and editable. markdown-it's `html` option stays **off**.
 - Sanitize rendered Markdown HTML (DOMPurify) before injection — defense in depth even with
   `html` off, since link/image attributes are still author-controlled.
+- **Image policy + CSP `img-src` (decided here):** the strict CSP must add an explicit
+  `img-src` or images silently fail. Policy: allow `${webview.cspSource}` (local/workspace
+  images), `data:` (inline), and `https:` (remote). Remote images are a privacy/tracking
+  vector, so this is paired with a setting `cera.images.remote` (`render` | `placeholder`);
+  default **render**, with `placeholder` swapping remote `<img>` for a click-to-load chip.
+  Workspace-relative image paths are resolved via `webview.asWebviewUri`. `http:` is **not**
+  allowed (no mixed/insecure content).
 - **Fixture:** `fixtures/sample.md` (imported from the desktop repo) is the acceptance
   artifact. It is annotated: the "Inline Extensions" section (`++ins++`, `==mark==`, sub/sup,
   emoji shortcodes) is **non-GFM** and must render as literal text — these double as Phase 7
@@ -136,6 +153,13 @@ corrupt or clobber unrelated content on commit.
 
 - `Tab` / `Shift+Tab` commit the current block and move to next/previous; arrow keys stay within a block.
 - `Ctrl/Cmd+↓` / `Ctrl/Cmd+↑` block navigation.
+- **Navigation-key ownership (define here, ahead of the Phase 6 matrix):** when CodeMirror is
+  active in a block it claims `Tab` (indentation) and the arrow keys. Decide per key: `Tab`/
+  `Shift+Tab` are **removed from CodeMirror's keymap** so they always mean block-move (a
+  block is one logical "field"); arrow keys **stay with CodeMirror** for in-block caret motion
+  and only cross block boundaries when the caret is at the block's first/last line; the
+  `Ctrl/Cmd+↑/↓` block-nav chords are global and excluded from CodeMirror. These rows feed
+  directly into the Phase 6 ownership matrix.
 - Active block shows: 3–4px accent left border (`--vscode-focusBorder`), and right-aligned
   controls — **↓ next**, **↑ previous**, **× close**.
 - **Tests (gate):** unit/DOM tests for the navigation state machine — Tab/Shift+Tab and
@@ -264,7 +288,7 @@ the per-phase unit gates already written in Phases 1–8.
 
 **Goal:** shippable extension.
 
-- Bundle with **esbuild**; `vsce package` → `.vsix`.
+- Reuse the existing Phase-1 **esbuild** bundle (production/minified config); `vsce package` → `.vsix`.
 - Marketplace listing (icon, README, screenshots/GIFs), Open VSX for VSCodium.
 - Release workflow: tag → build `.vsix` → attach to GitHub Release (+ Marketplace publish).
 - Versioning and CHANGELOG.
@@ -282,8 +306,11 @@ the per-phase unit gates already written in Phases 1–8.
 
 ## Open questions
 
-1. **CodeMirror 6 vs. textarea** for per-block source editing in Phase 2 — start with CM6 or defer?
-2. **Diagrams** — port Mermaid support, or placeholder-only for v1?
-3. **Marketplace publisher** — reuse `Alpharius99`, or register a dedicated publisher ID?
+1. **Diagrams** — port Mermaid support, or placeholder-only for v1?
+2. **Marketplace publisher** — reuse `Alpharius99`, or register a dedicated publisher ID?
 
-_Resolved:_ Markdown flavor — **CommonMark + GFM** (see Core technical decision).
+_Resolved:_
+- Markdown flavor — **CommonMark + GFM** (see Core technical decision).
+- Per-block source editor — **CodeMirror 6** (the Core decision fixes this; `<textarea>` is
+  only an internal fallback if a CM6 integration risk surfaces during the Phase 1 spike, not
+  an open product choice).

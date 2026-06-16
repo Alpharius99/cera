@@ -56,6 +56,8 @@ document-wide undo/redo for free.
 ## Security
 
 - Strict CSP: `default-src 'none'`, scripts only via nonce, styles only from `webview.cspSource`.
+  From Phase 1, `img-src ${webview.cspSource} data: https:` (no `http:`); remote-image
+  rendering is gated by the `cera.images.remote` setting (`render` | `placeholder`).
 - `localResourceRoots` limited to `media/`.
 - markdown-it runs with `html: false`; raw HTML blocks are shown as raw editable source,
   not rendered — avoids executing author-supplied HTML in the webview.
