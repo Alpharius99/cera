@@ -210,7 +210,13 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
         const mod = e.metaKey || e.ctrlKey;
         let handled = true;
         if (e.key === "Escape") {
-          exitEditor(false);
+          // While the slash menu is open, Escape closes it (handled by
+          // CodeMirror) rather than exiting the editor (#14).
+          if (blockEl.querySelector(".cm-tooltip-autocomplete")) {
+            handled = false;
+          } else {
+            exitEditor(false);
+          }
         } else if (e.key === "Tab") {
           navigate(e.shiftKey ? -1 : 1);
         } else if (mod && e.key === "ArrowDown") {

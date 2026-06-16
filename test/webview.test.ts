@@ -470,6 +470,50 @@ describe("active-block affordances and controls (#13)", () => {
   });
 });
 
+describe("slash menu Escape handling (#14)", () => {
+  // Fake editor whose DOM we can decorate with a stand-in completion tooltip,
+  // exercising app.ts's Escape guard without running CodeMirror under jsdom.
+  function mountWithRawEditor(): void {
+    dispose();
+    dispose = mountWebview(root, host, {
+      createEditor: (doc) => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => doc, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+  const escape = (el: Element): void => {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  };
+
+  beforeEach(() => {
+    mountWithRawEditor();
+    update("# One\n\nTwo\n", { version: 1 });
+  });
+
+  it("Escape closes the open menu instead of exiting the editor", () => {
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    block0.click();
+    const editorEl = block0.querySelector(".fake-editor")!;
+    const tooltip = document.createElement("div");
+    tooltip.className = "cm-tooltip-autocomplete";
+    block0.appendChild(tooltip); // menu is open
+
+    escape(editorEl);
+
+    expect(block0.querySelector(".fake-editor"), "editor stays open").not.toBeNull();
+    expect(posted.some((m) => m.type === "commit")).toBe(false);
+  });
+
+  it("Escape exits the editor when no menu is open", () => {
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    block0.click();
+    escape(block0.querySelector(".fake-editor")!);
+    expect(block0.querySelector(".fake-editor"), "editor collapses").toBeNull();
+  });
+});
+
 describe("undo/redo keystroke forwarding (#9)", () => {
   const press = (key: string, opts: KeyboardEventInit = {}): void => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...opts }));
