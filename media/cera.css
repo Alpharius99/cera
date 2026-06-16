@@ -233,3 +233,52 @@ body {
 .cera-empty {
   opacity: 0.6;
 }
+
+/* Chord overlay: a centered cheat-sheet of formatting shortcuts shown while the
+   modifier is held (#19). Informational only — never captures input. */
+.cera-chord-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  padding: 16px 20px;
+  pointer-events: none;
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--vscode-widget-shadow, transparent);
+}
+
+.cera-chord-overlay[hidden] {
+  display: none;
+}
+
+.cera-chord-title {
+  margin-bottom: 10px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.cera-chord-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cera-chord-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 2px 0;
+}
+
+.cera-chord-key {
+  font-family: var(--vscode-editor-font-family, monospace);
+  padding: 1px 6px;
+  color: var(--vscode-keybindingLabel-foreground, inherit);
+  background-color: var(--vscode-keybindingLabel-background, transparent);
+  border: 1px solid var(--vscode-keybindingLabel-border, transparent);
+  border-radius: 4px;
+}

@@ -5,7 +5,22 @@ import { markdown } from "@codemirror/lang-markdown";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { slashCompletions } from "./slash";
 import { createSelectionBubble, SelectionBubble } from "./bubble";
+import { createChordOverlay, ChordOverlay } from "./overlay";
+import { handleChordKeydown, isChordModifier } from "./chord-dispatch";
 import { TRANSFORMS, TransformName } from "./transforms";
+
+/** Apply a shared transform to the view's current selection, restoring the
+ *  resulting selection so callers (bubble + chords) never lose context. */
+function applyTransform(view: EditorView, name: TransformName): void {
+  const selection = view.state.selection.main;
+  const doc = view.state.doc.toString();
+  const result = TRANSFORMS[name](doc, { from: selection.from, to: selection.to });
+  view.dispatch({
+    changes: { from: 0, to: doc.length, insert: result.text },
+    selection: { anchor: result.selection.from, head: result.selection.to },
+  });
+  view.focus();
+}
 
 /** A per-block source editor, abstracted so the webview wiring can be tested
  *  without constructing a real CodeMirror view. */
@@ -112,22 +127,71 @@ const selectionBubble = ViewPlugin.fromClass(
     }
 
     private apply(name: TransformName): void {
-      const selection = this.view.state.selection.main;
-      if (selection.empty) {
+      if (this.view.state.selection.main.empty) {
         return;
       }
-      const doc = this.view.state.doc.toString();
-      const result = TRANSFORMS[name](doc, { from: selection.from, to: selection.to });
-      this.view.dispatch({
-        changes: { from: 0, to: doc.length, insert: result.text },
-        selection: { anchor: result.selection.from, head: result.selection.to },
-      });
-      this.view.focus();
+      applyTransform(this.view, name);
     }
 
     destroy(): void {
       clearTimeout(this.timer);
       this.bubble.destroy();
+    }
+  },
+);
+
+// Delay the modifier must be held before the chord overlay appears (#19).
+const CHORD_HOLD_MS = 500;
+
+// Chord layer: hold Cmd/Ctrl to reveal a cheat-sheet of formatting shortcuts,
+// and apply a claimed chord on keypress (#19). Dispatch follows the ownership
+// matrix (#18) — claimed chords fire once and preventDefault; reserved chords
+// pass through to VS Code/CodeMirror. The overlay is reactive: it shows after a
+// hold and dismisses instantly on release, focus loss, or a fired chord.
+const chordLayer = ViewPlugin.fromClass(
+  class {
+    private readonly overlay: ChordOverlay = createChordOverlay();
+    private timer: ReturnType<typeof setTimeout> | undefined;
+    private readonly onKeyDown = (event: KeyboardEvent): void => this.keydown(event);
+    private readonly onKeyUp = (event: KeyboardEvent): void => {
+      if (isChordModifier(event.key)) {
+        this.dismiss();
+      }
+    };
+    private readonly onBlur = (): void => this.dismiss();
+
+    constructor(private readonly view: EditorView) {
+      document.body.appendChild(this.overlay.dom);
+      view.dom.addEventListener("keydown", this.onKeyDown);
+      view.dom.addEventListener("keyup", this.onKeyUp);
+      view.dom.addEventListener("blur", this.onBlur, true);
+    }
+
+    private keydown(event: KeyboardEvent): void {
+      // A claimed chord applies and dismisses the overlay; reserved chords fall
+      // through untouched.
+      if (handleChordKeydown(event, (name) => applyTransform(this.view, name))) {
+        this.dismiss();
+        return;
+      }
+      // Arm the overlay while the bare modifier is held.
+      if (isChordModifier(event.key) && !event.repeat) {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => this.overlay.show(), CHORD_HOLD_MS);
+      }
+    }
+
+    private dismiss(): void {
+      clearTimeout(this.timer);
+      this.overlay.hide();
+    }
+
+    destroy(): void {
+      clearTimeout(this.timer);
+      this.view.dom.removeEventListener("keydown", this.onKeyDown);
+      this.view.dom.removeEventListener("keyup", this.onKeyUp);
+      this.view.dom.removeEventListener("blur", this.onBlur, true);
+      this.overlay.destroy();
     }
   },
 );
@@ -152,6 +216,7 @@ export function createBlockEditor(doc: string, nonce: string): BlockEditor {
           EditorView.cspNonce.of(nonce),
           autocompletion({ override: [slashCompletions], activateOnTyping: true, icons: false }),
           selectionBubble,
+          chordLayer,
           ceraTheme,
         ],
       }),
