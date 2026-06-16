@@ -22,9 +22,56 @@ body {
   line-height: 1.6;
 }
 
-.cera-raw {
-  white-space: pre-wrap;
-  word-wrap: break-word;
+/* Rendered blocks. Each top-level Markdown block is one .cera-block; spacing
+   between blocks gives the reading column its rhythm. */
+.cera-block + .cera-block {
+  margin-top: 1em;
+}
+
+.cera-block h1,
+.cera-block h2,
+.cera-block h3,
+.cera-block h4,
+.cera-block h5,
+.cera-block h6 {
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.cera-block pre,
+.cera-block code {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vscode-editor-font-size, 13px);
+}
+
+.cera-block pre {
+  padding: 12px 16px;
+  overflow-x: auto;
+  background-color: var(--vscode-textCodeBlock-background);
+  border-radius: 4px;
+}
+
+.cera-block blockquote {
+  margin: 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--vscode-textBlockQuote-border);
+  color: var(--vscode-textBlockQuote-foreground, inherit);
+}
+
+.cera-block table {
+  border-collapse: collapse;
+}
+
+.cera-block th,
+.cera-block td {
+  padding: 4px 10px;
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+}
+
+.cera-block img {
+  max-width: 100%;
+}
+
+.cera-empty {
+  opacity: 0.6;
 }
