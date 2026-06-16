@@ -9,15 +9,17 @@ import { parseBlocks } from "../src/webview/blocks";
 // original is a byte-for-byte fidelity check of the block model (#21), the
 // guarantee Phase 2's splice will depend on.
 function reconstruct(src: string): string {
-  const lineCount = src.split("\n").length;
+  const eol = src.includes("\r\n") ? "\r\n" : "\n";
+  const lineCount = src.split(/\r?\n/).length;
   const out = new Array<string>(lineCount).fill("");
   for (const block of parseBlocks(src)) {
+    // block.raw is LF-normalized; the source EOL is re-applied on join (#32).
     const rawLines = block.raw.split("\n");
     for (let i = 0; i < rawLines.length; i++) {
       out[block.map[0] + i] = rawLines[i];
     }
   }
-  return out.join("\n");
+  return out.join(eol);
 }
 
 const CORPUS_DIR = "fixtures/corpus";
@@ -51,8 +53,15 @@ describe("byte-for-byte fidelity corpus (#21)", () => {
     expect(reconstruct(src)).toBe(src);
   });
 
-  // KNOWN LIMITATION (#32): markdown-it normalizes CRLF, so a lone \r on an
-  // otherwise blank line is not preserved by block-model reconstruction. Must be
-  // resolved before Phase 2 relies on reconstruction for writes.
-  it.todo("preserves CRLF line endings byte-for-byte (#32)");
+  // CRLF inputs round-trip byte-for-byte (#32). Kept inline so git/editor EOL
+  // normalization of fixture files can't mask them.
+  it("preserves a CRLF blank line (the original #32 repro)", () => {
+    const src = "# H\r\n\r\nBody.\r\n";
+    expect(reconstruct(src)).toBe(src);
+  });
+
+  it("preserves CRLF line endings across a multi-block document", () => {
+    const src = "# Heading\r\n\r\nBody paragraph.\r\n\r\n## Next\r\n";
+    expect(reconstruct(src)).toBe(src);
+  });
 });

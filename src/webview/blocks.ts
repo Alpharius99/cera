@@ -94,7 +94,10 @@ function isReferenceDefinition(line: string): boolean {
  * is hidden.
  */
 export function parseBlocks(src: string): Block[] {
-  const lines = src.split("\n");
+  // Normalize to LF lines so the block model is EOL-agnostic (#32). markdown-it
+  // normalizes internally too; the original EOL is re-applied at the splice
+  // boundary (src/splice.ts, the host's commit).
+  const lines = src.split(/\r?\n/);
   const pending: PendingBlock[] = [];
 
   // Front matter -> a single raw block at the top.

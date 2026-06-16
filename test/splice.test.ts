@@ -22,4 +22,13 @@ describe("spliceBlock (#9)", () => {
     const src = "# Title\n\nBody paragraph.\n\n## Next\n";
     expect(spliceBlock(src, 2, 3, "Edited body.")).toBe("# Title\n\nEdited body.\n\n## Next\n");
   });
+
+  it("preserves CRLF line endings (#32)", () => {
+    expect(spliceBlock("# H\r\n\r\nBody.\r\n", 0, 1, "# J")).toBe("# J\r\n\r\nBody.\r\n");
+  });
+
+  it("converts the new text's newlines to the source EOL (#32)", () => {
+    // Editor text is LF; splicing into a CRLF document yields CRLF.
+    expect(spliceBlock("a\r\nb\r\n", 0, 1, "x\ny")).toBe("x\r\ny\r\nb\r\n");
+  });
 });

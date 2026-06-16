@@ -108,8 +108,12 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
       new vscode.Position(startLine, 0),
       new vscode.Position(lastLine, document.lineAt(lastLine).text.length),
     );
+    // The webview produces LF text; match the document's EOL so CRLF files stay
+    // byte-for-byte CRLF (#32).
+    const eol: string = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+    const normalizedText: string = text.replace(/\r?\n/g, eol);
     const edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
-    edit.replace(document.uri, range, text);
+    edit.replace(document.uri, range, normalizedText);
     return vscode.workspace.applyEdit(edit);
   }
 
