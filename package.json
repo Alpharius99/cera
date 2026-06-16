@@ -48,7 +48,10 @@
       "properties": {
         "cera.images.remote": {
           "type": "string",
-          "enum": ["render", "placeholder"],
+          "enum": [
+            "render",
+            "placeholder"
+          ],
           "enumDescriptions": [
             "Load remote (https) images directly.",
             "Show a click-to-load placeholder instead of loading remote images."
@@ -68,14 +71,19 @@
     "watch:webview": "node esbuild.js --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "npm run build && node ./out/test/runTest.js",
     "lint": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.23.1",
+    "glob": "^11.1.0",
     "jsdom": "^25.0.1",
+    "mocha": "^10.8.2",
     "typescript": "^5.4.0",
     "vitest": "^2.1.9"
   },
