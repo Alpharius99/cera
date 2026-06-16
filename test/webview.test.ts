@@ -334,6 +334,73 @@ describe("block-splitting commit behavior (#11)", () => {
   });
 });
 
+describe("block navigation (#12)", () => {
+  // Editor reports the block's own raw text, so navigation is a clean
+  // (no-change) explicit exit.
+  function mountWithRawEditor(): void {
+    dispose();
+    dispose = mountWebview(root, host, {
+      createEditor: (doc) => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => doc, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+  const press = (el: Element, key: string, opts: KeyboardEventInit = {}): void => {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...opts }));
+  };
+  const editorAt = (i: number): Element | null =>
+    root.querySelector(`.cera-block[data-block-index="${i}"] .fake-editor`);
+  const openAt = (i: number): Element => {
+    root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!.click();
+    return editorAt(i)!;
+  };
+
+  beforeEach(() => {
+    mountWithRawEditor();
+    update("# One\n\nTwo\n\nThree\n", { version: 1 }); // three blocks
+  });
+
+  it("Tab commits and moves to the next block", () => {
+    const e0 = openAt(0);
+    press(e0, "Tab");
+    expect(editorAt(0)).toBeNull();
+    expect(editorAt(1)).not.toBeNull();
+  });
+
+  it("Shift+Tab moves to the previous block", () => {
+    const e1 = openAt(1);
+    press(e1, "Tab", { shiftKey: true });
+    expect(editorAt(1)).toBeNull();
+    expect(editorAt(0)).not.toBeNull();
+  });
+
+  it("Ctrl/Cmd+ArrowDown and ArrowUp navigate between blocks", () => {
+    press(openAt(0), "ArrowDown", { metaKey: true });
+    expect(editorAt(1)).not.toBeNull();
+    press(editorAt(1)!, "ArrowUp", { ctrlKey: true });
+    expect(editorAt(0)).not.toBeNull();
+    expect(editorAt(1)).toBeNull();
+  });
+
+  it("Tab on the last block commits and exits (no wraparound)", () => {
+    press(openAt(2), "Tab");
+    expect(root.querySelector(".fake-editor")).toBeNull();
+  });
+
+  it("Shift+Tab on the first block commits and exits", () => {
+    press(openAt(0), "Tab", { shiftKey: true });
+    expect(root.querySelector(".fake-editor")).toBeNull();
+  });
+
+  it("a plain arrow key stays within the block", () => {
+    const e0 = openAt(0);
+    press(e0, "ArrowDown");
+    expect(editorAt(0)).not.toBeNull(); // still editing block 0
+  });
+});
+
 describe("undo/redo keystroke forwarding (#9)", () => {
   const press = (key: string, opts: KeyboardEventInit = {}): void => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...opts }));

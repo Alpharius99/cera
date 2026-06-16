@@ -136,6 +136,27 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     }
   }
 
+  // Commit the active block (explicit exit) and move to the block `direction`
+  // away, opening its editor (#12). At the first/last block there is no target,
+  // so it simply commits and collapses (no wraparound).
+  function navigate(direction: 1 | -1): void {
+    if (!active) {
+      return;
+    }
+    const targetIndex = active.block.index + direction;
+    exitEditor(true);
+    const targetBlock = blocks[targetIndex];
+    if (!targetBlock) {
+      return;
+    }
+    const targetEl = root.querySelector<HTMLElement>(
+      `.cera-block[data-block-index="${targetIndex}"]`,
+    );
+    if (targetEl) {
+      openEditor(targetEl, targetBlock);
+    }
+  }
+
   // Reveal-on-focus: click a rendered block to edit its raw Markdown source.
   function openEditor(blockEl: HTMLElement, block: Block): void {
     const editor = createEditor(block.raw, nonce);
@@ -153,14 +174,35 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     });
 
     blockEl.replaceChildren(editor.dom, closeButton);
-    // Escape is an implicit exit: commits, and collapses unless the edit split
-    // the block into several (#11).
-    editor.dom.addEventListener("keydown", (event) => {
-      if ((event as KeyboardEvent).key === "Escape") {
-        event.preventDefault();
-        exitEditor(false);
-      }
-    });
+
+    // Navigation/exit keys are handled in the capture phase so they win over
+    // CodeMirror (an inner element). Tab/Shift+Tab and Ctrl/Cmd+↑/↓ move between
+    // blocks; Escape is an implicit exit; plain arrows fall through to the editor
+    // for in-block caret motion (#12).
+    editor.dom.addEventListener(
+      "keydown",
+      (event) => {
+        const e = event as KeyboardEvent;
+        const mod = e.metaKey || e.ctrlKey;
+        let handled = true;
+        if (e.key === "Escape") {
+          exitEditor(false);
+        } else if (e.key === "Tab") {
+          navigate(e.shiftKey ? -1 : 1);
+        } else if (mod && e.key === "ArrowDown") {
+          navigate(1);
+        } else if (mod && e.key === "ArrowUp") {
+          navigate(-1);
+        } else {
+          handled = false;
+        }
+        if (handled) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true,
+    );
     editor.focus();
     // Tag the editor with the document version it was opened against (#10).
     active = { el: blockEl, editor, block, baseVersion: latestVersion };
