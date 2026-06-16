@@ -56,10 +56,14 @@
     "lint": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
     "esbuild": "^0.23.1",
     "typescript": "^5.4.0",
     "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "markdown-it": "^14.2.0"
   }
 }
