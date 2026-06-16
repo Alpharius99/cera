@@ -69,11 +69,14 @@ Build a real installable package — useful for testing as an installed extensio
 or sharing it.
 
 ```bash
-npx @vscode/vsce package          # produces cera-<version>.vsix
-code --install-extension cera-<version>.vsix
+npm run package                   # produces cera.vsix (runs the production build)
+code --install-extension cera.vsix
 ```
 
-Uninstall again with `code --uninstall-extension Alpharius99.cera`.
+Uninstall again with `code --uninstall-extension Alpharius99.cera`. CI can also
+build the VSIX on demand (manual run) or on a `v*` tag — see
+[.github/workflows/package.yml](.github/workflows/package.yml), which uploads
+the `.vsix` as a build artifact.
 
 ## Theming
 

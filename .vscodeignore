@@ -9,5 +9,8 @@ node_modules/**
 .vscode-test/**
 out/test/**
 fixtures/**
+docs/**
+esbuild.js
+vitest.config.ts
 ROADMAP.md
 ARCHITECTURE.md

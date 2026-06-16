@@ -73,6 +73,7 @@
     "test:watch": "vitest",
     "test:integration": "npm run build && node ./out/test/runTest.js",
     "test:all": "npm run build && npm test && node ./out/test/runTest.js",
+    "package": "vsce package --out cera.vsix",
     "lint": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
@@ -81,6 +82,7 @@
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.23.1",
     "glob": "^11.1.0",
     "jsdom": "^25.0.1",
