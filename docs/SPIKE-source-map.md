@@ -45,7 +45,9 @@ commit, edit the whole block as raw source, and never splice a partial range.
    (`heading_open` over lines 2–6). **Mitigation:** detect and strip front matter
    before markdown-it sees it, and emit it as an atomic `raw-text-block` that
    round-trips byte-for-byte (Phase 7 fidelity requirement). Do **not** rely on
-   `.map` for it.
+   `.map` for it. **Phase 1 classification:** front matter is a `raw` block —
+   implemented in #20, and covered as tested behavior (source range, terminator
+   variants, byte-for-byte round-trip) by the front-matter spike tests (#22).
 2. **Link reference definitions** (`[ref]: url "title"`). markdown-it consumes
    these into its reference map and emits **no token**, so their lines are
    unclaimed. **Mitigation:** treat each definition line as an atomic raw-text

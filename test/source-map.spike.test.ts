@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import MarkdownIt from "markdown-it";
 import { readFileSync } from "node:fs";
+import { parseBlocks } from "../src/webview/blocks";
 
 // Spike (#4): empirically verify that markdown-it token `.map` line ranges are
 // precise enough to drive Phase 2's block splice. Findings are written up in
@@ -70,5 +71,44 @@ describe("markdown-it source-map spike (#4)", () => {
     expect(top[0].map).toEqual([0, 1]);
     expect(top[1].type).toBe("heading_open");
     expect(top[1].map).toEqual([1, 6]);
+  });
+});
+
+// The spike's fallback (strip front matter, emit it as a raw block) is now
+// implemented in parseBlocks (#20). These assertions cover front matter as
+// tested behavior so it is no longer an untested roadmap assumption (#22).
+// Phase 1 classification: front matter is a RAW block — never rendered, never a
+// special-case — and round-trips byte-for-byte (Phase 7 fidelity).
+describe("front matter coverage (#22)", () => {
+  it("classifies the fixture's front matter as a raw block with a round-tripping range", () => {
+    const fm = parseBlocks(src)[0];
+    expect(fm.type).toBe("front_matter");
+    expect(fm.kind).toBe("raw");
+    expect(fm.map).toEqual([0, 6]);
+    expect(fm.raw).toBe(lines.slice(fm.map[0], fm.map[1]).join("\n"));
+  });
+
+  it("supports the YAML '...' document-end terminator", () => {
+    const fm = parseBlocks("---\ntitle: T\n...\n\n# Heading\n")[0];
+    expect(fm.type).toBe("front_matter");
+    expect(fm.map).toEqual([0, 3]);
+    expect(fm.raw).toBe("---\ntitle: T\n...");
+  });
+
+  it("does not treat a thematic break as front matter when it isn't at the top", () => {
+    const blocks = parseBlocks("# Heading\n\n---\n\nBody.\n");
+    expect(blocks.find((b) => b.type === "front_matter")).toBeUndefined();
+    expect(blocks.some((b) => b.type === "hr")).toBe(true);
+  });
+
+  it("treats a document with no front matter as having none", () => {
+    const blocks = parseBlocks("# Heading\n\nBody.\n");
+    expect(blocks.find((b) => b.type === "front_matter")).toBeUndefined();
+    expect(blocks[0].type).toBe("heading_open");
+  });
+
+  it("does not treat an unterminated leading '---' as front matter", () => {
+    const blocks = parseBlocks("---\nnot front matter\n");
+    expect(blocks.find((b) => b.type === "front_matter")).toBeUndefined();
   });
 });
