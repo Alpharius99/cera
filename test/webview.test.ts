@@ -401,6 +401,64 @@ describe("block navigation (#12)", () => {
   });
 });
 
+describe("active-block affordances and controls (#13)", () => {
+  function mountWithRawEditor(): void {
+    dispose();
+    dispose = mountWebview(root, host, {
+      createEditor: (doc) => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => doc, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+  const editorAt = (i: number): Element | null =>
+    root.querySelector(`.cera-block[data-block-index="${i}"] .fake-editor`);
+  const openAt = (i: number): HTMLElement => {
+    root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!.click();
+    return root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!;
+  };
+
+  beforeEach(() => {
+    mountWithRawEditor();
+    update("# One\n\nTwo\n\nThree\n", { version: 1 });
+  });
+
+  it("flags the active block so the focus-border accent applies", () => {
+    const block1 = openAt(1);
+    expect(block1.classList.contains("cera-block--editing")).toBe(true);
+  });
+
+  it("shows right-aligned prev, next, and close controls, each screen-reader named", () => {
+    const block1 = openAt(1);
+    const labels = [...block1.querySelectorAll<HTMLButtonElement>(".cera-block-control")].map((b) =>
+      b.getAttribute("aria-label"),
+    );
+    expect(labels).toEqual(["Previous block", "Next block", "Done editing"]);
+    expect(block1.querySelector(".cera-block-close")).not.toBeNull();
+  });
+
+  it("the next control moves to the next block (mirrors Tab)", () => {
+    const block1 = openAt(1);
+    (block1.querySelectorAll<HTMLButtonElement>(".cera-block-control")[1]).click();
+    expect(editorAt(1)).toBeNull();
+    expect(editorAt(2)).not.toBeNull();
+  });
+
+  it("the prev control moves to the previous block (mirrors Shift+Tab)", () => {
+    const block1 = openAt(1);
+    (block1.querySelectorAll<HTMLButtonElement>(".cera-block-control")[0]).click();
+    expect(editorAt(1)).toBeNull();
+    expect(editorAt(0)).not.toBeNull();
+  });
+
+  it("the next control on the last block commits and collapses (no wraparound)", () => {
+    const block2 = openAt(2);
+    (block2.querySelectorAll<HTMLButtonElement>(".cera-block-control")[1]).click();
+    expect(root.querySelector(".fake-editor")).toBeNull();
+  });
+});
+
 describe("undo/redo keystroke forwarding (#9)", () => {
   const press = (key: string, opts: KeyboardEventInit = {}): void => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...opts }));
