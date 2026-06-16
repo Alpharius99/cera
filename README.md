@@ -5,6 +5,8 @@ A distraction-free, **reveal-on-focus** Markdown editor for Visual Studio Code.
 Cera is a port of the [Cera desktop editor](https://github.com/Alpharius99/MarkItDown)
 (C# / Avalonia) to a VS Code extension. Same philosophy: see fully rendered
 Markdown, click a block to edit its raw source, and never fight a toolbar.
+The source project is private; migration notes and source-file pointers live in
+[docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md).
 
 > **Status:** Phase 0 — buildable skeleton. The reveal-on-focus block model and
 > formatting layers are being built out per the [Roadmap](ROADMAP.md).
@@ -36,13 +38,37 @@ npm install
 npm run compile        # or: npm run watch
 ```
 
-Press **F5** ("Run Cera Extension") to launch an Extension Development Host, then
-open any `.md` file with the Cera editor.
+There are two ways to run the extension.
+
+### Option A — Run from source (F5)
+
+The everyday dev loop. Nothing is installed; the extension loads live from this
+folder and is gone when you close the window.
+
+1. Open this folder in VS Code.
+2. Press **F5** ("Run Cera Extension"). VS Code runs the `compile` task and opens
+   a second window titled **[Extension Development Host]** with Cera loaded.
+3. In that window, open a `.md` file (e.g. `fixtures/sample.md`), then **Reopen
+   With… → Cera Markdown Editor** or run **"Cera: Open Current File in Cera Editor"**.
+
+### Option B — Package and install a VSIX
+
+Build a real installable package — useful for testing as an installed extension
+or sharing it.
+
+```bash
+npx @vscode/vsce package          # produces cera-<version>.vsix
+code --install-extension cera-<version>.vsix
+```
+
+Uninstall again with `code --uninstall-extension Alpharius99.cera`.
 
 ## Documentation
 
 - [ROADMAP.md](ROADMAP.md) — phased build plan
 - [ARCHITECTURE.md](ARCHITECTURE.md) — technical design and VS Code mapping
+- [docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md) — source-project
+  reference map for porting behavior from MarkItDown
 
 ## License
 

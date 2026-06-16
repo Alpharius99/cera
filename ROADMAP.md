@@ -5,6 +5,10 @@ A phased plan to port the [Cera desktop editor](https://github.com/Alpharius99/M
 **reveal-on-focus block editing**, **zen-mode minimalism**, and **three invisible
 formatting layers**.
 
+The source project is private. Use [docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md)
+as the migration reference map: it links the MarkItDown files and tests that
+should be consulted for each phase.
+
 This is a draft. Phases are ordered to keep the extension buildable and
 demonstrable at every step. Each phase lists a **goal**, **scope**, and a
 **done-when** check. Following the desktop project's convention: tests and docs
@@ -49,6 +53,11 @@ AvaloniaEdit. The VS Code equivalent is a **webview-based `CustomTextEditorProvi
   (`script-src 'nonce-…'`, no `unsafe-inline`/CDN). They are **bundled with esbuild** into a
   single nonce-loaded `media/cera.bundle.js`. This bundler is set up in Phase 1 and reused
   through Phase 10; Phase 10 only adds release packaging (`vsce`) on top of it.
+
+Before starting a phase, read that phase's MarkItDown source/test list in
+[docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md). The source repo is
+the behavior reference; this repo's roadmap and architecture define the VS Code
+translation.
 
 **Trade-off to revisit:** a webview custom editor gives full control over the
 reveal-on-focus model but does not reuse VS Code's native text editor inside blocks

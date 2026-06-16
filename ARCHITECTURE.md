@@ -3,6 +3,10 @@
 Technical design for the Cera VS Code extension, and how the desktop app's
 concepts map onto VS Code APIs.
 
+For source-project pointers, see
+[docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md). MarkItDown is the
+behavior reference; this document describes the VS Code/webview translation.
+
 ## Overview
 
 Cera is a webview-based **custom editor** for `.md` files. The extension host
@@ -39,6 +43,11 @@ host↔webview message channel.
 | SlashCommandMenu / SelectionBubble / ChordOverlay | DOM overlays in the webview           |
 | `IFileService` / save                | VS Code `TextDocument` + `WorkspaceEdit` + native save |
 | Undo (open BUG-013 on desktop)       | Native VS Code undo/redo via `WorkspaceEdit`        |
+
+The concrete MarkItDown files behind this table are linked in
+[docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md), including
+`MarkdownParserService.cs`, `BlockEditorState.cs`, `MarkdownEditor.axaml.cs`,
+`RenderedBlock.axaml.cs`, `SourceBlock.axaml.cs`, and `FormattingService.cs`.
 
 A notable win: the desktop app has an open undo bug (AvaloniaEdit history resets
 per block activation). Routing all edits through `WorkspaceEdit` gives correct,
