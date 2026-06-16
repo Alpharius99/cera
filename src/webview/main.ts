@@ -12,4 +12,8 @@ interface VsCodeApi {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
-mountWebview(document.getElementById("cera-document") as HTMLElement, acquireVsCodeApi());
+// The bundle is loaded via <script nonce="..."> under the strict CSP; reuse that
+// nonce so CodeMirror can inject its theme styles (#8).
+const nonce = (document.currentScript as HTMLScriptElement | null)?.nonce ?? "";
+
+mountWebview(document.getElementById("cera-document") as HTMLElement, acquireVsCodeApi(), { nonce });

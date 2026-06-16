@@ -77,6 +77,72 @@ describe("webview rendering (#26)", () => {
   });
 });
 
+describe("reveal-on-focus block editing (#8)", () => {
+  // Inject a fake editor so the click wiring is tested without running
+  // CodeMirror under jsdom.
+  const seeded: string[] = [];
+  function fakeEditor(doc: string) {
+    const dom = document.createElement("div");
+    dom.className = "fake-editor";
+    dom.textContent = doc;
+    return { dom, getText: () => doc, focus: () => {}, destroy: () => dom.remove() };
+  }
+
+  function remountWithFakeEditor(): void {
+    dispose();
+    seeded.length = 0;
+    dispose = mountWebview(root, host, {
+      createEditor: (doc) => {
+        seeded.push(doc);
+        return fakeEditor(doc);
+      },
+    });
+  }
+
+  it("opens a source editor seeded with the block's raw text on click", () => {
+    remountWithFakeEditor();
+    update("# One\n\nTwo\n");
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    block0.click();
+
+    expect(block0.classList.contains("cera-block--editing")).toBe(true);
+    expect(block0.querySelector(".fake-editor")).not.toBeNull();
+    expect(seeded).toEqual(["# One"]);
+  });
+
+  it("opens only one editor at a time", () => {
+    remountWithFakeEditor();
+    update("# One\n\nTwo\n");
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!.click();
+
+    expect(root.querySelectorAll(".fake-editor").length).toBe(1);
+    expect(seeded).toEqual(["# One", "Two"]);
+  });
+
+  it("ignores clicks inside the already-open editor", () => {
+    remountWithFakeEditor();
+    update("# One\n");
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    block0.click();
+    (block0.querySelector(".fake-editor") as HTMLElement).click();
+    expect(seeded).toEqual(["# One"]);
+  });
+
+  it("collapses back to the rendered view when clicking outside a block", () => {
+    remountWithFakeEditor();
+    update("# One\n\nTwo\n");
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    block0.click();
+    expect(block0.querySelector(".fake-editor")).not.toBeNull();
+
+    root.click(); // outside any block
+    expect(block0.querySelector(".fake-editor")).toBeNull();
+    expect(block0.classList.contains("cera-block--editing")).toBe(false);
+    expect(block0.querySelector("h1")?.textContent).toBe("One");
+  });
+});
+
 describe("webview isolation (#26)", () => {
   it("stops handling messages after dispose (no global leakage)", () => {
     dispose();

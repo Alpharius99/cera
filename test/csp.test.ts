@@ -17,4 +17,9 @@ describe("buildCsp image policy (#7)", () => {
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("script-src 'nonce-nonce123'");
   });
+
+  it("allows the linked stylesheet and CodeMirror's nonced styles", () => {
+    expect(csp).toContain("style-src VSCODE_CSP_SOURCE 'nonce-nonce123'");
+    expect(csp).toContain("style-src-attr 'unsafe-inline'");
+  });
 });

@@ -109,6 +109,28 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* Active (reveal-on-focus) block: the rendered view is replaced by a source
+   editor (CodeMirror, or the textarea contingency). */
+.cera-block--editing {
+  border-left: 2px solid var(--vscode-focusBorder);
+  padding-left: 10px;
+}
+
+.cera-block .cm-editor {
+  font-size: var(--vscode-editor-font-size, 13px);
+}
+
+.cera-fallback-editor {
+  width: 100%;
+  min-height: 4em;
+  box-sizing: border-box;
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+}
+
 .cera-empty {
   opacity: 0.6;
 }
