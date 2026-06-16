@@ -438,6 +438,17 @@ describe("active-block affordances and controls (#13)", () => {
     expect(block1.querySelector(".cera-block-close")).not.toBeNull();
   });
 
+  it("renders the controls as native VS Code codicons, hidden from a11y tree (#35)", () => {
+    const block1 = openAt(1);
+    const icons = [...block1.querySelectorAll<HTMLElement>(".cera-block-control .codicon")];
+    expect(icons.map((i) => i.className)).toEqual([
+      "codicon codicon-arrow-up",
+      "codicon codicon-arrow-down",
+      "codicon codicon-close",
+    ]);
+    expect(icons.every((i) => i.getAttribute("aria-hidden") === "true")).toBe(true);
+  });
+
   it("the next control moves to the next block (mirrors Tab)", () => {
     const block1 = openAt(1);
     (block1.querySelectorAll<HTMLButtonElement>(".cera-block-control")[1]).click();

@@ -7,8 +7,23 @@
 //   node esbuild.js --watch    rebuild on change for the F5 dev loop
 
 const esbuild = require("esbuild");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const watch = process.argv.includes("--watch");
+
+// Copy the VS Code codicon font + stylesheet into media/codicons/ so the webview
+// can load them under the CSP (localResourceRoots includes media/). Vendored at
+// build time rather than committed, like the bundle itself (#35).
+function copyCodicons() {
+  const src = path.join("node_modules", "@vscode", "codicons", "dist");
+  const dest = path.join("media", "codicons");
+  fs.mkdirSync(dest, { recursive: true });
+  for (const file of ["codicon.css", "codicon.ttf"]) {
+    fs.copyFileSync(path.join(src, file), path.join(dest, file));
+  }
+  console.log("[esbuild] copied codicon assets to media/codicons/");
+}
 
 /** @type {import('esbuild').BuildOptions} */
 const options = {
@@ -24,6 +39,7 @@ const options = {
 };
 
 async function main() {
+  copyCodicons();
   if (watch) {
     const ctx = await esbuild.context(options);
     await ctx.watch();

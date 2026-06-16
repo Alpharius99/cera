@@ -170,6 +170,11 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
     const styleUri: vscode.Uri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._context.extensionUri, "media", "cera.css"),
     );
+    // VS Code codicon font, copied into media/ at build time, for the native
+    // active-block controls (#35). Loaded under the CSP's cspSource font-src.
+    const codiconUri: vscode.Uri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._context.extensionUri, "media", "codicons", "codicon.css"),
+    );
     const nonce: string = getNonce();
 
     return /* html */ `<!DOCTYPE html>
@@ -178,6 +183,7 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${buildCsp(webview.cspSource, nonce)}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="${codiconUri}" rel="stylesheet" />
   <link href="${styleUri}" rel="stylesheet" />
   <title>Cera</title>
 </head>
