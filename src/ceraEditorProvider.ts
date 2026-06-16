@@ -104,6 +104,14 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
           if (!applied) {
             updateWebview();
           }
+        } else if (message.type === "undo") {
+          // Cmd/Ctrl+Z is swallowed by the focused webview; run the workbench
+          // undo on its behalf so block commits revert through native history.
+          vscode.commands.executeCommand("undo");
+        } else if (message.type === "redo") {
+          // Forwarding is in place, but redo does not yet re-apply the edit for
+          // this custom editor — tracked in #33.
+          vscode.commands.executeCommand("redo");
         } else if (message.type === "ready") {
           updateWebview();
         }

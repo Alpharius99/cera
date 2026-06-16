@@ -56,16 +56,33 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     active = null;
   }
 
-  // Commit the active block's edits to the document, then collapse. If the text
-  // is unchanged, just collapse. The host applies the splice and echoes an
-  // update, which re-renders the block with its committed content (#9).
-  function commitActive(): void {
+  // After committing a split (the editor stays open), re-tag the active block to
+  // the text just committed so further edits target the now-larger range. The
+  // host's #10 resolution rebases via originalText, which now sits in the doc.
+  function retagActive(committedText: string): void {
+    if (!active) {
+      return;
+    }
+    const start = active.block.map[0];
+    const lineCount = committedText.split(/\r?\n/).length;
+    active.block = { ...active.block, raw: committedText, map: [start, start + lineCount] };
+  }
+
+  /**
+   * Exit the active editor (#11). Always commits changed text. Collapse rules:
+   * - single-block edit, or an `explicit` exit (× / navigation) → collapse;
+   * - split edit with an implicit exit (Escape / blur) → persist but stay in
+   *   source mode, so a blur can never silently discard or collapse a split.
+   */
+  function exitEditor(explicit: boolean): void {
     if (!active) {
       return;
     }
     const text = active.editor.getText();
     const changed = text !== active.block.raw;
-    const docMovedOn = latestVersion !== active.baseVersion;
+    const split = parseBlocks(text).length > 1;
+    const baseVersion = active.baseVersion;
+
     if (changed) {
       // The host resolves the range against the current document (#10) and
       // echoes an update (apply) or refreshes the webview (conflict).
@@ -74,17 +91,24 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
         startLine: active.block.map[0],
         endLine: active.block.map[1],
         text,
-        baseVersion: active.baseVersion,
+        baseVersion,
         originalText: active.block.raw,
       });
-      destroyActive();
-    } else {
-      destroyActive();
-      // No commit means no host echo; if external edits arrived while editing,
-      // catch the view up to the current document now.
-      if (docMovedOn) {
-        render(latestText);
+    }
+
+    if (split && !explicit) {
+      // Split + implicit exit: persist, stay in source mode.
+      if (changed) {
+        retagActive(text);
       }
+      return;
+    }
+
+    destroyActive();
+    // No commit means no host echo; if external edits arrived while editing,
+    // catch the view up to the current document now.
+    if (!changed && latestVersion !== baseVersion) {
+      render(latestText);
     }
   }
 
@@ -116,12 +140,25 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
   function openEditor(blockEl: HTMLElement, block: Block): void {
     const editor = createEditor(block.raw, nonce);
     blockEl.classList.add("cera-block--editing");
-    blockEl.replaceChildren(editor.dom);
-    // Escape commits and collapses (single-block mode; split mode is #11).
+
+    // Explicit-exit affordance: always commits and collapses (even when split).
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "cera-block-close";
+    closeButton.title = "Done editing";
+    closeButton.textContent = "×";
+    closeButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      exitEditor(true);
+    });
+
+    blockEl.replaceChildren(editor.dom, closeButton);
+    // Escape is an implicit exit: commits, and collapses unless the edit split
+    // the block into several (#11).
     editor.dom.addEventListener("keydown", (event) => {
       if ((event as KeyboardEvent).key === "Escape") {
         event.preventDefault();
-        commitActive();
+        exitEditor(false);
       }
     });
     editor.focus();
@@ -134,8 +171,15 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     if (blockEl === active?.el) {
       return;
     }
-    // Clicking elsewhere (another block or outside) commits the open editor.
-    commitActive();
+    // A click elsewhere is an implicit (blur) exit. In split mode this commits
+    // but keeps the editor open, so the new block is not opened.
+    if (active) {
+      const stayOpen = parseBlocks(active.editor.getText()).length > 1;
+      exitEditor(false);
+      if (stayOpen) {
+        return;
+      }
+    }
     if (blockEl) {
       const block = blocks[Number(blockEl.dataset.blockIndex)];
       if (block) {
@@ -175,11 +219,31 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
   };
   target.addEventListener("message", onMessage);
 
+  // VS Code keybindings don't reach the workbench while the webview is focused,
+  // so forward undo/redo to the host from the rendered view. The block commits
+  // are in VS Code's native undo history (#9), so this makes Cmd/Ctrl+Z work.
+  // While a block is open, CodeMirror owns undo/redo for the in-progress edit.
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (active || !(event.metaKey || event.ctrlKey)) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (key === "z" && !event.shiftKey) {
+      event.preventDefault();
+      host.postMessage({ type: "undo" });
+    } else if ((key === "z" && event.shiftKey) || key === "y") {
+      event.preventDefault();
+      host.postMessage({ type: "redo" });
+    }
+  };
+  window.addEventListener("keydown", onKeyDown);
+
   // Tell the extension host we're ready to receive the document.
   host.postMessage({ type: "ready" });
 
   return () => {
     target.removeEventListener("message", onMessage);
+    window.removeEventListener("keydown", onKeyDown);
     root.removeEventListener("click", onClick);
     destroyActive();
   };

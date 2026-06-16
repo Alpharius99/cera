@@ -112,8 +112,24 @@ body {
 /* Active (reveal-on-focus) block: the rendered view is replaced by a source
    editor (CodeMirror, or the textarea contingency). */
 .cera-block--editing {
+  position: relative;
   border-left: 2px solid var(--vscode-focusBorder);
   padding-left: 10px;
+}
+
+/* Explicit-exit affordance shown while editing (commits + collapses). */
+.cera-block-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-button-secondaryBackground, transparent);
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 4px;
 }
 
 .cera-block .cm-editor {

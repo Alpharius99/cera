@@ -264,6 +264,109 @@ describe("concurrent-edit safety (#10)", () => {
   });
 });
 
+describe("block-splitting commit behavior (#11)", () => {
+  let edited: string;
+  function mountControllable(): void {
+    dispose();
+    edited = "";
+    dispose = mountWebview(root, host, {
+      createEditor: () => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => edited, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+  const escape = (el: Element): void => {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  };
+  const openBlock0 = (): HTMLElement => {
+    update("# One\n\nTwo\n", { version: 1 });
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    edited = "# One";
+    block0.click();
+    return block0;
+  };
+
+  it("Escape on a split edit commits but stays in source mode", () => {
+    mountControllable();
+    const block0 = openBlock0();
+    edited = "# One\n\nNew paragraph"; // now two blocks
+    escape(block0.querySelector(".fake-editor")!);
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({ text: "# One\n\nNew paragraph" });
+    expect(block0.querySelector(".fake-editor"), "editor stays open after split").not.toBeNull();
+    expect(block0.classList.contains("cera-block--editing")).toBe(true);
+  });
+
+  it("Escape on a single-block edit commits and collapses", () => {
+    mountControllable();
+    const block0 = openBlock0();
+    edited = "# Changed"; // still one block
+    escape(block0.querySelector(".fake-editor")!);
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({ text: "# Changed" });
+    expect(block0.querySelector(".fake-editor"), "editor collapses when not split").toBeNull();
+  });
+
+  it("the × button is an explicit exit that collapses even when split", () => {
+    mountControllable();
+    const block0 = openBlock0();
+    edited = "# One\n\nNew paragraph"; // split
+    (block0.querySelector(".cera-block-close") as HTMLButtonElement).click();
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({ text: "# One\n\nNew paragraph" });
+    expect(block0.querySelector(".fake-editor"), "explicit exit collapses a split").toBeNull();
+  });
+
+  it("a blur in split mode commits but does not open the clicked block", () => {
+    mountControllable();
+    const block0 = openBlock0();
+    edited = "# One\n\nNew paragraph"; // split
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!.click();
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({ text: "# One\n\nNew paragraph" });
+    expect(block0.querySelector(".fake-editor"), "split editor stays open on blur").not.toBeNull();
+    expect(
+      root.querySelector('.cera-block[data-block-index="1"] .fake-editor'),
+      "the other block is not opened in split mode",
+    ).toBeNull();
+  });
+});
+
+describe("undo/redo keystroke forwarding (#9)", () => {
+  const press = (key: string, opts: KeyboardEventInit = {}): void => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...opts }));
+  };
+
+  it("forwards Cmd/Ctrl+Z as an undo request from the rendered view", () => {
+    press("z", { metaKey: true });
+    expect(posted.some((m) => m.type === "undo")).toBe(true);
+  });
+
+  it("forwards Cmd+Shift+Z and Ctrl+Y as redo requests", () => {
+    press("z", { metaKey: true, shiftKey: true });
+    press("y", { ctrlKey: true });
+    expect(posted.filter((m) => m.type === "redo").length).toBe(2);
+  });
+
+  it("does not forward undo while a block editor is open (CodeMirror owns it)", () => {
+    dispose();
+    dispose = mountWebview(root, host, {
+      createEditor: () => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => "# One", focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+    update("# One\n");
+    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+    posted.length = 0;
+    press("z", { metaKey: true });
+    expect(posted.some((m) => m.type === "undo")).toBe(false);
+  });
+});
+
 describe("webview isolation (#26)", () => {
   it("stops handling messages after dispose (no global leakage)", () => {
     dispose();
