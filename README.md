@@ -36,6 +36,7 @@ VS Code handles document sync, dirty state, undo/redo, and save natively.
 ```bash
 npm install
 npm run compile        # or: npm run watch
+npm test               # run the Vitest unit suite (npm run test:watch to watch)
 ```
 
 There are two ways to run the extension.
