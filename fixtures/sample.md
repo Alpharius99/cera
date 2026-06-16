@@ -1,6 +1,16 @@
+---
+title: Cera Spec Sample
+author: Cera
+tags: [markdown, fidelity, sample]
+draft: false
+---
+
 # Cera Spec Sample
 
 This sample exercises every block type and inline element the editor must handle.
+
+The YAML front matter above is **not** CommonMark/GFM. It must be shown as raw, editable
+source (a `raw-text-block`), never rendered, and must round-trip byte-for-byte (Phase 7).
 
 ## Inline Formatting
 

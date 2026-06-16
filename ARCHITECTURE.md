@@ -20,8 +20,9 @@ host↔webview message channel.
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                     │  postMessage / onDidReceiveMessage
 ┌──────────────────────────────────┴──── Webview (sandboxed browser) ──────────┐
-│ media/cera.js     render loop, block model, reveal-on-focus, formatting UI    │
-│ media/cera.css    zen layout + theme via --vscode-* CSS variables             │
+│ media/cera.bundle.js  render loop, block model, reveal-on-focus, formatting   │
+│   (esbuild output)    UI; bundles markdown-it + GFM + DOMPurify + CodeMirror   │
+│ media/cera.css        zen layout + theme via --vscode-* CSS variables          │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -31,7 +32,7 @@ host↔webview message channel.
 |--------------------------------------|----------------------------------------------------|
 | Avalonia `Window`                    | Webview panel inside a `CustomTextEditorProvider`  |
 | `DocumentViewModel` / block list     | Block model built in the webview from markdown-it   |
-| Markdig `UsePreciseSourceLocation()` | markdown-it + source-map plugin (line ranges)       |
+| Markdig `UsePreciseSourceLocation()` | markdown-it native block-token `.map` line ranges (no extra plugin) |
 | Markdown.Avalonia (render block)     | markdown-it render → sanitized HTML in webview      |
 | AvaloniaEdit (edit source)           | CodeMirror 6 in webview (textarea fallback)         |
 | `FormattingService`                  | Shared TS formatting module in the webview          |

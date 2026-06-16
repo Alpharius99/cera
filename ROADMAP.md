@@ -114,11 +114,18 @@ builds green on push/PR.
   an `npm test` script, and wire `npm test` into `.github/workflows/ci.yml`.
 - **Tests (gate):** unit tests for the block parser and source-map — for each block type,
   assert the parsed block list and that each block's reported line range round-trips to its
-  raw substring; assert HTML blocks and the non-GFM extensions render as literal source.
+  raw substring; assert HTML blocks, YAML front matter, and the non-GFM extensions render as
+  literal source.
+- **Tests (gate) — images:** assert the emitted CSP contains `img-src ${cspSource} data: https:`
+  and excludes `http:`; assert a workspace-relative image resolves via `asWebviewUri`, a
+  `data:` image is allowed, and an `https:` image is allowed; assert `cera.images.remote =
+  placeholder` replaces remote `<img>` with the click-to-load chip while local/`data:` images
+  still render.
 
 **Done when:** opening `fixtures/sample.md` renders all supported block types (incl. GFM)
-correctly and shows HTML/non-GFM content as literal source; editing the file elsewhere
-live-updates the rendered view; `npm test` runs parser/source-map tests green in CI.
+correctly and shows HTML/front-matter/non-GFM content as literal source; images render per
+the CSP/`cera.images.remote` policy; editing the file elsewhere live-updates the rendered
+view; `npm test` runs parser, source-map, and image-policy tests green in CI.
 
 ---
 
@@ -129,9 +136,16 @@ live-updates the rendered view; `npm test` runs parser/source-map tests green in
 - Click handler maps the clicked DOM block → its source line range (from the source map).
 - Replace the rendered block with a CodeMirror 6 source editor seeded with that block's raw text.
 - VS Code/Xcode-style push-down expand animation (CSS height transition).
-- **Commit** on Escape, blur (click outside), or explicit close → send the edited block
-  text to the host, which splices it into the document via `WorkspaceEdit`, then re-renders.
-- **Block splitting:** if an edit produces multiple blocks, stay in source mode until explicit exit.
+- **Two distinct actions — *commit* (persist text to the document) vs *collapse* (re-render
+  back to view mode).** Separating them resolves the split-mode rule below.
+  - **Single-block mode (the edit still maps to one block):** Escape, blur (click outside),
+    and explicit close all **commit + collapse**.
+  - **Split mode (the edit produced multiple blocks):** Escape and blur **commit but do NOT
+    collapse** — the edited text is persisted via `WorkspaceEdit` (never lost), but the source
+    editor stays open over the now-multiple blocks. Only an **explicit exit** —the `×` close
+    button or navigating away (Tab / `Ctrl/Cmd+↑↓`)— commits and then collapses/re-renders.
+  This honors "stay in source mode until explicit exit" without ever risking unsaved edits,
+  and gives Escape a single unambiguous meaning (always commit; collapse only when not split).
 - **Stale-range / concurrent-edit safety (critical):** Phase 1 live-updates from external
   edits, so the document can change while a block editor is open. Commit must not blindly
   overwrite a line range that has shifted. Approach: tag the open editor with the document
@@ -143,7 +157,8 @@ live-updates the rendered view; `npm test` runs parser/source-map tests green in
 **Done when:** a user can click any block, edit its source, and see it re-render on
 commit; undo (Ctrl/Cmd+Z) reverts the edit through VS Code's native history; a test
 proves an external edit elsewhere in the document while a block is open does **not**
-corrupt or clobber unrelated content on commit.
+corrupt or clobber unrelated content on commit; a test proves that after an edit splits a
+block, Escape/blur persist the text but keep source mode, and only explicit exit collapses.
 
 ---
 
