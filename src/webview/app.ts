@@ -29,7 +29,11 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
 
   const policy: ImagePolicy = { remoteMode: "render", baseUri: "" };
   let blocks: Block[] = [];
-  let active: { el: HTMLElement; editor: BlockEditor; block: Block } | null = null;
+  let active: { el: HTMLElement; editor: BlockEditor; block: Block; baseVersion: number } | null = null;
+  // Latest document state from the host. While a block is being edited, external
+  // updates are deferred (not re-rendered) so the open editor is not destroyed.
+  let latestText = "";
+  let latestVersion = 0;
 
   // Paint a block's rendered HTML into its element.
   function paintBlock(el: HTMLElement, block: Block): void {
@@ -60,15 +64,28 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       return;
     }
     const text = active.editor.getText();
-    if (text !== active.block.raw) {
+    const changed = text !== active.block.raw;
+    const docMovedOn = latestVersion !== active.baseVersion;
+    if (changed) {
+      // The host resolves the range against the current document (#10) and
+      // echoes an update (apply) or refreshes the webview (conflict).
       host.postMessage({
         type: "commit",
         startLine: active.block.map[0],
         endLine: active.block.map[1],
         text,
+        baseVersion: active.baseVersion,
+        originalText: active.block.raw,
       });
+      destroyActive();
+    } else {
+      destroyActive();
+      // No commit means no host echo; if external edits arrived while editing,
+      // catch the view up to the current document now.
+      if (docMovedOn) {
+        render(latestText);
+      }
     }
-    destroyActive();
   }
 
   function render(text: string): void {
@@ -108,7 +125,8 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       }
     });
     editor.focus();
-    active = { el: blockEl, editor, block };
+    // Tag the editor with the document version it was opened against (#10).
+    active = { el: blockEl, editor, block, baseVersion: latestVersion };
   }
 
   const onClick = (event: Event): void => {
@@ -135,6 +153,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       text?: string;
       baseUri?: string;
       remoteMode?: string;
+      version?: number;
     };
     if (message.type === "update" && typeof message.text === "string") {
       if (typeof message.baseUri === "string") {
@@ -143,7 +162,15 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       if (message.remoteMode === "render" || message.remoteMode === "placeholder") {
         policy.remoteMode = message.remoteMode;
       }
-      render(message.text);
+      latestText = message.text;
+      if (typeof message.version === "number") {
+        latestVersion = message.version;
+      }
+      // Defer re-rendering while a block is being edited so the open editor is
+      // not destroyed by an external change (#10); the commit reconciles.
+      if (!active) {
+        render(message.text);
+      }
     }
   };
   target.addEventListener("message", onMessage);

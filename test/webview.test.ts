@@ -202,6 +202,68 @@ describe("block commit (#9)", () => {
   });
 });
 
+describe("concurrent-edit safety (#10)", () => {
+  let edited: string;
+  function mountControllable(): void {
+    dispose();
+    edited = "";
+    dispose = mountWebview(root, host, {
+      createEditor: () => {
+        const dom = document.createElement("div");
+        dom.className = "fake-editor";
+        return { dom, getText: () => edited, focus: () => {}, destroy: () => dom.remove() };
+      },
+    });
+  }
+  const escape = (el: Element): void => {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  };
+
+  it("keeps the editor open when an external update arrives while editing", () => {
+    mountControllable();
+    update("# One\n\nTwo\n", { version: 1 });
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    edited = "# One";
+    block0.click();
+    expect(block0.querySelector(".fake-editor")).not.toBeNull();
+
+    update("# One\n\nTwo\n\nThree\n", { version: 2 }); // external edit while editing
+    expect(block0.querySelector(".fake-editor")).not.toBeNull(); // not destroyed
+    expect(root.querySelectorAll(".cera-block").length).toBe(2); // render deferred
+  });
+
+  it("tags the commit with baseVersion and originalText", () => {
+    mountControllable();
+    update("# One\n\nTwo\n", { version: 5 });
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    edited = "# One";
+    block0.click();
+    edited = "# Changed";
+    escape(block0.querySelector(".fake-editor")!);
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({
+      startLine: 0,
+      endLine: 1,
+      text: "# Changed",
+      baseVersion: 5,
+      originalText: "# One",
+    });
+  });
+
+  it("catches up to deferred external edits after closing an unchanged editor", () => {
+    mountControllable();
+    update("# One\n", { version: 1 });
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    edited = "# One"; // unchanged
+    block0.click();
+    update("# One\n\nAdded\n", { version: 2 }); // deferred while editing
+    escape(root.querySelector(".fake-editor")!);
+
+    expect(posted.some((m) => m.type === "commit")).toBe(false);
+    expect(root.querySelectorAll(".cera-block").length).toBe(2); // re-rendered to latest
+  });
+});
+
 describe("webview isolation (#26)", () => {
   it("stops handling messages after dispose (no global leakage)", () => {
     dispose();

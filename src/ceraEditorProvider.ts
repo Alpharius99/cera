@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { buildCsp } from "./csp";
+import { resolveBlockRange } from "./splice";
 
 // Cera's reveal-on-focus editor is a webview-based custom editor over the
 // raw Markdown text. Using CustomTextEditorProvider means VS Code gives us
@@ -51,6 +52,7 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
         text: document.getText(),
         baseUri,
         remoteMode,
+        version: document.version,
       });
     };
 
@@ -75,14 +77,33 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
     // Block commits coming back from the webview are spliced into the document
     // as workspace edits, so VS Code records undo history and dirty state.
     webviewPanel.webview.onDidReceiveMessage(
-      (message: { type: string; text?: string; startLine?: number; endLine?: number }) => {
+      async (message: {
+        type: string;
+        text?: string;
+        startLine?: number;
+        endLine?: number;
+        baseVersion?: number;
+        originalText?: string;
+      }) => {
         if (
           message.type === "commit" &&
           typeof message.text === "string" &&
           typeof message.startLine === "number" &&
           typeof message.endLine === "number"
         ) {
-          this._commitBlock(document, message.startLine, message.endLine, message.text);
+          const applied: boolean = await this._commitBlock(
+            document,
+            message.startLine,
+            message.endLine,
+            message.text,
+            message.baseVersion,
+            message.originalText ?? "",
+          );
+          // On a successful commit the document change re-renders the webview;
+          // on a rejected/conflicting commit, refresh it to the current state.
+          if (!applied) {
+            updateWebview();
+          }
         } else if (message.type === "ready") {
           updateWebview();
         }
@@ -90,22 +111,39 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
     );
   }
 
-  // Replace the source lines [startLine, endLine) with `text`. The range covers
-  // the block's content (col 0 of the first line to the end of the last line),
-  // leaving the surrounding newlines intact. Stale/out-of-bounds ranges are
-  // rejected here; version-based rebasing of concurrent edits is #10.
-  private _commitBlock(
+  // Splice the block's edited `text` back into the document. If the document
+  // changed since the editor opened (version mismatch), re-resolve the block's
+  // current range first and abort on conflict, so a stale range can never
+  // overwrite unrelated content (#10). Returns whether an edit was applied.
+  private async _commitBlock(
     document: vscode.TextDocument,
     startLine: number,
     endLine: number,
     text: string,
-  ): Thenable<boolean> | undefined {
-    const lastLine: number = endLine - 1;
-    if (startLine < 0 || lastLine < startLine || lastLine >= document.lineCount) {
-      return undefined;
+    baseVersion: number | undefined,
+    originalText: string,
+  ): Promise<boolean> {
+    let start: number = startLine;
+    let end: number = endLine;
+
+    if (baseVersion !== undefined && document.version !== baseVersion) {
+      const resolution = resolveBlockRange(document.getText(), originalText, startLine, endLine);
+      if (resolution.status === "conflict") {
+        await vscode.window.showWarningMessage(
+          "Cera: this block changed outside the editor, so your edit was not applied (to avoid overwriting other changes).",
+        );
+        return false;
+      }
+      start = resolution.startLine;
+      end = resolution.endLine;
+    }
+
+    const lastLine: number = end - 1;
+    if (start < 0 || lastLine < start || lastLine >= document.lineCount) {
+      return false;
     }
     const range: vscode.Range = new vscode.Range(
-      new vscode.Position(startLine, 0),
+      new vscode.Position(start, 0),
       new vscode.Position(lastLine, document.lineAt(lastLine).text.length),
     );
     // The webview produces LF text; match the document's EOL so CRLF files stay
