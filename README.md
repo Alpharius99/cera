@@ -58,6 +58,16 @@ Three invisible layers, all sharing one set of transforms:
 - Visual Studio Code **1.90** or newer. No other dependencies — Cera is
   self-contained and works offline.
 
+## Known limitations
+
+- **Redo after undoing a block edit** ([#33](https://github.com/Alpharius99/cera/issues/33)) —
+  after you commit a block edit and **undo** it, VS Code shows **Redo** as
+  available but it does not re-apply the change. This is a platform behavior of
+  redo for programmatic edits to a document shown only in a custom editor (the
+  menu Redo is affected too, so it isn't a keybinding issue), not something Cera
+  can currently work around. **Undo works normally**; to get the change back,
+  re-make the edit.
+
 ## Develop
 
 ```bash
