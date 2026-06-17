@@ -110,8 +110,11 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
           // undo on its behalf so block commits revert through native history.
           vscode.commands.executeCommand("undo");
         } else if (message.type === "redo") {
-          // Forwarding is in place, but redo does not yet re-apply the edit for
-          // this custom editor — tracked in #33.
+          // Forwarding is in place, but redo does not re-apply the edit for this
+          // custom editor: VS Code's redo of a programmatic WorkspaceEdit against
+          // a document shown only in a custom editor is enabled yet no-ops (the
+          // menu Redo is affected too, so it isn't a keybinding issue). Documented
+          // as a known limitation (#33); undo works normally.
           vscode.commands.executeCommand("redo");
         } else if (message.type === "ready") {
           updateWebview();
