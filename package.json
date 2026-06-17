@@ -58,6 +58,13 @@
           ],
           "default": "render",
           "description": "How Cera handles remote (https) images. Local and inline (data:) images always render."
+        },
+        "cera.maxReadingWidth": {
+          "type": "number",
+          "default": 740,
+          "minimum": 480,
+          "maximum": 1400,
+          "description": "Maximum width (in pixels) of the centered reading column."
         }
       }
     }

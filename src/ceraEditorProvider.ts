@@ -44,14 +44,15 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Push the current document text (plus image policy) into the webview.
     const updateWebview = (): void => {
-      const remoteMode: string = vscode.workspace
-        .getConfiguration("cera")
-        .get<string>("images.remote", "render");
+      const config = vscode.workspace.getConfiguration("cera");
+      const remoteMode: string = config.get<string>("images.remote", "render");
+      const maxReadingWidth: number = config.get<number>("maxReadingWidth", 740);
       webviewPanel.webview.postMessage({
         type: "update",
         text: document.getText(),
         baseUri,
         remoteMode,
+        maxReadingWidth,
         version: document.version,
       });
     };
@@ -65,7 +66,7 @@ export class CeraEditorProvider implements vscode.CustomTextEditorProvider {
     });
     // Re-render when the remote-image setting changes.
     const configSubscription: vscode.Disposable = vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("cera.images.remote")) {
+      if (e.affectsConfiguration("cera")) {
         updateWebview();
       }
     });

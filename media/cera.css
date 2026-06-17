@@ -19,13 +19,18 @@ body {
   max-width: 740px;
   margin: 0 auto;
   padding: 48px 24px 30vh 24px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* Rendered blocks. Each top-level Markdown block is one .cera-block; spacing
-   between blocks gives the reading column its rhythm. */
+   between blocks gives the reading column its rhythm. The background transition
+   eases the tint in when a block becomes active (#23). */
+.cera-block {
+  transition: background-color 0.15s ease;
+}
+
 .cera-block + .cera-block {
-  margin-top: 1em;
+  margin-top: 1.1em;
 }
 
 .cera-block h1,
@@ -180,6 +185,15 @@ body {
   box-shadow: 0 2px 8px var(--vscode-widget-shadow, transparent);
   opacity: 0.6;
   transition: opacity 0.1s ease;
+  animation: cera-fade-in 0.12s ease;
+}
+
+/* Gentle fade-in for the transient surfaces (selection bubble, chord overlay)
+   so they appear calmly rather than popping (#23). */
+@keyframes cera-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .cera-bubble:hover {
@@ -249,10 +263,21 @@ body {
   border: 1px solid var(--vscode-editorWidget-border, currentColor);
   border-radius: 8px;
   box-shadow: 0 4px 16px var(--vscode-widget-shadow, transparent);
+  animation: cera-fade-in 0.12s ease;
 }
 
 .cera-chord-overlay[hidden] {
   display: none;
+}
+
+/* Respect reduced-motion: no fades or tint transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .cera-block,
+  .cera-bubble,
+  .cera-chord-overlay {
+    animation: none;
+    transition: none;
+  }
 }
 
 .cera-chord-title {

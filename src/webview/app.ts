@@ -269,6 +269,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       text?: string;
       baseUri?: string;
       remoteMode?: string;
+      maxReadingWidth?: number;
       version?: number;
     };
     if (message.type === "update" && typeof message.text === "string") {
@@ -277,6 +278,10 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       }
       if (message.remoteMode === "render" || message.remoteMode === "placeholder") {
         policy.remoteMode = message.remoteMode;
+      }
+      // Reading-column width is user-configurable (#23); apply it to the column.
+      if (typeof message.maxReadingWidth === "number" && message.maxReadingWidth > 0) {
+        root.style.maxWidth = `${message.maxReadingWidth}px`;
       }
       latestText = message.text;
       if (typeof message.version === "number") {
