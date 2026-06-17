@@ -6,7 +6,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.0.2] - 2026-06-17
+## [0.0.4] - 2026-06-17
 
 ### Added
 
@@ -70,6 +70,6 @@ Marketplace).
   behavior for redo of programmatic edits to a document shown only in a custom
   editor. Undo works normally.
 
-[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.2...HEAD
-[0.0.2]: https://github.com/Alpharius99/cera/compare/v0.0.1...v0.0.2
+[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/Alpharius99/cera/compare/v0.0.3...v0.0.4
 [0.0.1]: https://github.com/Alpharius99/cera/releases/tag/v0.0.1
