@@ -30,6 +30,7 @@
     "notes",
     "preview"
   ],
+  "icon": "media/icon.png",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

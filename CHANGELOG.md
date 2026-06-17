@@ -6,6 +6,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-06-17
+
+### Added
+
+- **Cera Welcome panel** in the primary side bar, with a Cera icon in the
+  Activity Bar ([#50](https://github.com/Alpharius99/cera/issues/50)). Offers
+  **New Document**, **Open a Markdown File**, and **Open Current File in Cera**
+  — a frictionless way to start editing in Cera.
+- Marketplace gallery icon (`media/icon.png`).
+
+### Changed
+
+- Marketplace publisher set to `PavelSpakowski`.
+
 ## [0.0.1] - 2026-06-17
 
 First pre-release build, distributed as a downloadable VSIX (not yet on the
@@ -56,5 +70,6 @@ Marketplace).
   behavior for redo of programmatic edits to a document shown only in a custom
   editor. Undo works normally.
 
-[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/Alpharius99/cera/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/Alpharius99/cera/releases/tag/v0.0.1

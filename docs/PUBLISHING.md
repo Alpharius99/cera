@@ -19,9 +19,8 @@ file is about the *listing material*.
 
 These can't be generated automatically — they need design or account decisions:
 
-- [ ] **Extension icon** — a 128×128 PNG at `media/icon.png`, then add
-      `"icon": "media/icon.png"` to `package.json`. (Left out for now so
-      `vsce package` doesn't fail on a missing file.)
+- [x] **Extension icon** — 256×256 PNG at `media/icon.png`, referenced via
+      `"icon": "media/icon.png"` in `package.json`.
 - [ ] **Screenshots / GIFs** — capture the reveal-on-focus flow, the selection
       bubble, the slash menu, and the chord overlay; add them under `media/` and
       reference them in the README. The Marketplace shows README images inline.
