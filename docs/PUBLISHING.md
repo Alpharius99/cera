@@ -25,8 +25,8 @@ These can't be generated automatically — they need design or account decisions
 - [ ] **Screenshots / GIFs** — capture the reveal-on-focus flow, the selection
       bubble, the slash menu, and the chord overlay; add them under `media/` and
       reference them in the README. The Marketplace shows README images inline.
-- [ ] **Publisher ID** — confirm whether to publish under `Alpharius99` or
-      register a dedicated publisher (open question in [ROADMAP.md](../ROADMAP.md)).
+- [x] **Publisher ID** — publishing as **Pavel Spakowski** (publisher ID
+      `PavelSpakowski`), set in `package.json`.
 - [ ] **Marketplace tokens** — add `VSCE_PAT` (VS Code Marketplace) and `OVSX_PAT`
       (Open VSX) as repository secrets so the release workflow can publish.
 

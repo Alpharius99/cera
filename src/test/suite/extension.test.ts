@@ -22,7 +22,7 @@ describe("Cera custom editor lifecycle", function () {
   before(async () => {
     // Activation is lazy (on first custom-editor use); activate explicitly so
     // the contributed command is registered before the first assertion.
-    const ext = vscode.extensions.getExtension("Alpharius99.cera");
+    const ext = vscode.extensions.getExtension("PavelSpakowski.cera");
     assert.ok(ext, "Cera extension should be present");
     await ext.activate();
   });

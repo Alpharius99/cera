@@ -126,7 +126,7 @@ npm run package                   # produces cera.vsix (runs the production buil
 code --install-extension cera.vsix
 ```
 
-Uninstall again with `code --uninstall-extension Alpharius99.cera`. CI can also
+Uninstall again with `code --uninstall-extension PavelSpakowski.cera`. CI can also
 build the VSIX on demand (manual run) or on a `v*` tag — see
 [.github/workflows/package.yml](.github/workflows/package.yml), which uploads
 the `.vsix` as a build artifact.

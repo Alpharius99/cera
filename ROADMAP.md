@@ -330,9 +330,10 @@ the per-phase unit gates already written in Phases 1–8.
 
 ## Open questions
 
-1. **Marketplace publisher** — reuse `Alpharius99`, or register a dedicated publisher ID?
+_None outstanding._
 
 _Resolved:_
+- **Marketplace publisher** — publishing as **Pavel Spakowski** (publisher ID `PavelSpakowski`).
 - **Diagrams (#31)** — **placeholder-only for v1.** `mermaid` and `plantuml` fences render as
   a labeled, read-only placeholder showing the raw source; any other fenced language renders
   as a normal code block. No diagram engine runs in the webview (keeps the strict CSP and
