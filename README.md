@@ -8,8 +8,9 @@ Markdown, click a block to edit its raw source, and never fight a toolbar.
 The source project is private; migration notes and source-file pointers live in
 [docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md).
 
-> **Status:** Phase 0 — buildable skeleton. The reveal-on-focus block model and
-> formatting layers are being built out per the [Roadmap](ROADMAP.md).
+> **Status:** Pre-release. The reveal-on-focus block model and all three
+> formatting layers — slash commands, the selection bubble, and the chord
+> overlay — are implemented. See the [Roadmap](ROADMAP.md) for what's next.
 
 ## Philosophy
 
@@ -30,6 +31,32 @@ file with Cera via **Reopen With…** in the editor menu, or run the command
 
 Under the hood it is a `CustomTextEditorProvider` over the raw Markdown text, so
 VS Code handles document sync, dirty state, undo/redo, and save natively.
+
+## Formatting
+
+Three invisible layers, all sharing one set of transforms:
+
+- **Slash commands** — at the start of a line in a block's source, type `/` for a
+  menu: `/h1`–`/h6`, `/table`, `/code`, `/quote`, `/hr`, `/list`, `/checklist`
+  (fuzzy, so `/tb` finds the table).
+- **Selection bubble** — select text to get a floating toolbar: bold, italic,
+  link, strikethrough, code · code block · bullet/numbered/checklist. One click
+  applies and keeps your selection; re-applying toggles off.
+- **Chord overlay** — hold **Cmd/Ctrl** to reveal a shortcut cheat-sheet; press a
+  key to apply (e.g. **⌘B** bold, **⌘K** link). Reserved chords (save, undo,
+  find, clipboard) always pass through to VS Code.
+
+## Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cera.maxReadingWidth` | `740` | Maximum width (px) of the centered reading column. |
+| `cera.images.remote` | `render` | `render` loads remote (https) images; `placeholder` shows a click-to-load chip instead. Local and `data:` images always render. |
+
+## Requirements
+
+- Visual Studio Code **1.90** or newer. No other dependencies — Cera is
+  self-contained and works offline.
 
 ## Develop
 
@@ -101,6 +128,7 @@ Manual visual QA that the automated guard can't cover (run before a release):
   reference map for porting behavior from MarkItDown
 - [CHANGELOG.md](CHANGELOG.md) — release notes
 - [RELEASING.md](RELEASING.md) — how to cut a release
+- [docs/PUBLISHING.md](docs/PUBLISHING.md) — Marketplace / Open VSX listing readiness
 
 ## License
 

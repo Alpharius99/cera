@@ -12,6 +12,10 @@
     "type": "git",
     "url": "https://github.com/Alpharius99/cera.git"
   },
+  "homepage": "https://github.com/Alpharius99/cera#readme",
+  "bugs": {
+    "url": "https://github.com/Alpharius99/cera/issues"
+  },
   "categories": [
     "Other"
   ],
@@ -20,8 +24,16 @@
     "editor",
     "wysiwyg",
     "zen",
-    "distraction-free"
+    "distraction-free",
+    "custom editor",
+    "codemirror",
+    "notes",
+    "preview"
   ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "main": "./out/extension.js",
   "activationEvents": [],
   "contributes": {
