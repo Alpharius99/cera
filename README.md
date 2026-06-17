@@ -12,6 +12,22 @@ The source project is private; migration notes and source-file pointers live in
 > formatting layers — slash commands, the selection bubble, and the chord
 > overlay — are implemented. See the [Roadmap](ROADMAP.md) for what's next.
 
+## Install
+
+Cera isn't on the Marketplace yet. Download the latest pre-release VSIX — built
+and attached to a GitHub Release by CI:
+
+**[⬇ Download cera.vsix](https://github.com/Alpharius99/cera/releases/latest/download/cera.vsix)**
+
+Then install it from the command line:
+
+```bash
+code --install-extension cera.vsix
+```
+
+…or in VS Code: **Extensions** view → **⋯** menu → **Install from VSIX…**. All
+builds are on the [Releases page](https://github.com/Alpharius99/cera/releases).
+
 ## Philosophy
 
 **Zen mode first.** No toolbar, no sidebar, no status bar — just your text in a
