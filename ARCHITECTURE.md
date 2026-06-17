@@ -63,6 +63,15 @@ document-wide undo/redo for free.
 6. Host splices it into the document with a `WorkspaceEdit`; VS Code updates dirty state and undo history.
 7. Host re-sends updated text (or a targeted update); webview re-renders the affected block.
 
+## Diagram handling (v1)
+
+Diagram fences are **placeholder-only** in v1 (#31). A ` ```mermaid ` or ` ```plantuml `
+fence is classified as a `special` block and rendered as a labeled, read-only placeholder
+that shows its raw source verbatim — no diagram engine runs in the webview. This keeps the
+strict nonce CSP intact, avoids bundling a renderer, and preserves byte-for-byte fidelity.
+Any other fenced language renders as a normal code block. Live diagram rendering (e.g.
+bundling Mermaid) is deferred past v1.
+
 ## Security
 
 - Strict CSP: `default-src 'none'`, scripts only via nonce, styles only from `webview.cspSource`.
