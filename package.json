@@ -2,7 +2,7 @@
   "name": "cera",
   "displayName": "Cera",
   "description": "A distraction-free, reveal-on-focus Markdown editor for VS Code.",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "publisher": "PavelSpakowski",
   "license": "MIT",
   "engines": {
