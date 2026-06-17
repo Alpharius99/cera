@@ -35,8 +35,33 @@
     "theme": "dark"
   },
   "main": "./out/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:cera.welcome"
+  ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cera",
+          "title": "Cera",
+          "icon": "media/cera-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cera": [
+        {
+          "id": "cera.welcome",
+          "name": "Welcome"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "cera.welcome",
+        "contents": "Cera is a distraction-free, reveal-on-focus Markdown editor.\n\n[New Document](command:cera.newDocument)\n[Open a Markdown File](command:cera.openMarkdownFile)\n\nAlready have a file open?\n[Open Current File in Cera](command:cera.openWith)"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "cera.markdownEditor",
@@ -53,6 +78,14 @@
       {
         "command": "cera.openWith",
         "title": "Cera: Open Current File in Cera Editor"
+      },
+      {
+        "command": "cera.newDocument",
+        "title": "Cera: New Document"
+      },
+      {
+        "command": "cera.openMarkdownFile",
+        "title": "Cera: Open a Markdown File"
       }
     ],
     "configuration": {

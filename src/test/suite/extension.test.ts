@@ -32,6 +32,15 @@ describe("Cera custom editor lifecycle", function () {
     assert.ok(commands.includes("cera.openWith"), "cera.openWith should be registered");
   });
 
+  it("registers the Welcome panel commands", async () => {
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(commands.includes("cera.newDocument"), "cera.newDocument should be registered");
+    assert.ok(
+      commands.includes("cera.openMarkdownFile"),
+      "cera.openMarkdownFile should be registered",
+    );
+  });
+
   it("opens a Markdown document in the Cera custom editor", async () => {
     const uri = createTempMarkdown("# Hello\n\nBody.\n");
     await vscode.commands.executeCommand("vscode.openWith", uri, VIEW_TYPE);
