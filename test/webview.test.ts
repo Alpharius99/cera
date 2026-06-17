@@ -67,6 +67,11 @@ describe("webview rendering (#26)", () => {
     expect(root.textContent).toContain("<script>alert(1)</script>");
   });
 
+  it("applies the configured max reading-column width from the update message (#23)", () => {
+    update("# One\n", { maxReadingWidth: 920 });
+    expect(root.style.maxWidth).toBe("920px");
+  });
+
   it("applies the remote-image placeholder policy from the update message", () => {
     update("![pic](https://example.com/x.png)\n", {
       remoteMode: "placeholder",
