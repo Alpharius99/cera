@@ -19,7 +19,7 @@ come before/with implementation, not after.
 ## Guiding principles (carried over from the desktop app)
 
 1. **Zen mode first** — no toolbar, sidebar, or status bar inside the editor.
-2. **Reveal-on-focus** — rendered Markdown by default; click a block to edit raw source.
+2. **Reveal-on-focus** — rendered Markdown by default; double-click a block to edit raw source.
 3. **Complete visibility** — every byte of the file is shown, navigable, editable. Unrenderable blocks fall back to raw text, never hidden.
 4. **Keyboard-driven** — every action reachable without the mouse.
 5. **Theme-native** — inherit the user's VS Code theme via CSS variables; no hardcoded colors.
@@ -140,9 +140,9 @@ view; `npm test` runs parser, source-map, and image-policy tests green in CI.
 
 ## Phase 2 — Reveal-on-focus block editing
 
-**Goal:** click a rendered block → it expands to show raw Markdown source; commit on exit.
+**Goal:** double-click a rendered block → it expands to show raw Markdown source; commit on exit.
 
-- Click handler maps the clicked DOM block → its source line range (from the source map).
+- Double-click handler maps the clicked DOM block → its source line range (from the source map).
 - Replace the rendered block with a CodeMirror 6 source editor seeded with that block's raw text.
 - VS Code/Xcode-style push-down expand animation (CSS height transition).
 - **Two distinct actions — *commit* (persist text to the document) vs *collapse* (re-render
@@ -163,7 +163,7 @@ view; `npm test` runs parser, source-map, and image-policy tests green in CI.
   if the block's own text was edited underneath. Never apply a range computed against a
   stale document.
 
-**Done when:** a user can click any block, edit its source, and see it re-render on
+**Done when:** a user can double-click any block, edit its source, and see it re-render on
 commit; undo (Ctrl/Cmd+Z) reverts the edit through VS Code's native history; a test
 proves an external edit elsewhere in the document while a block is open does **not**
 corrupt or clobber unrelated content on commit; a test proves that after an edit splits a
