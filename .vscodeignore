@@ -1,6 +1,7 @@
 .vscode/**
 .github/**
 .claude/**
+.superpowers/**
 src/**
 node_modules/**
 **/tsconfig.json
@@ -11,6 +12,7 @@ node_modules/**
 out/test/**
 fixtures/**
 docs/**
+scripts/**
 esbuild.js
 vitest.config.ts
 ROADMAP.md

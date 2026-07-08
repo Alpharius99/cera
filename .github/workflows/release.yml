@@ -1,28 +1,37 @@
 name: Release
 
-# Tag-triggered release: build the VSIX, attach it to a GitHub Release, and
-# publish to the marketplaces when the corresponding tokens are configured.
-# Manual VSIX builds (no release) live in package.yml.
+# Every push to main creates the next patch release, builds the VSIX, attaches
+# it to a GitHub Release, and uploads it as a workflow artifact for manual
+# Marketplace upload.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
   release:
-    name: Build, release, publish
+    name: Build next manual upload package
     runs-on: ubuntu-latest
-    env:
-      VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+      - name: Compute next patch version
+        run: node scripts/next-release-version.mjs
+      - name: Prepare package version
+        run: node scripts/prepare-release-version.mjs
+      - name: Verify release metadata
+        run: node scripts/check-release.mjs
       - run: npm install
       # Gate the release on the unit suite (the commit's CI already ran the full
       # suite including integration).
@@ -30,18 +39,24 @@ jobs:
       - run: npm test
       - run: npm run package
 
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cera-vsix
+          path: cera.vsix
+          if-no-files-found: error
+
+      - name: Create and push release tag
+        run: |
+          if ! git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+            git tag "$RELEASE_TAG"
+            git push origin "$RELEASE_TAG"
+          fi
+
       - name: Create GitHub Release with the VSIX
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           files: cera.vsix
           generate_release_notes: true
-
-      # Publishing runs only when the token secret is present; otherwise it is a
-      # documented manual step (see RELEASING.md).
-      - name: Publish to VS Code Marketplace
-        if: ${{ env.VSCE_PAT != '' }}
-        run: npx --yes @vscode/vsce publish --packagePath cera.vsix
-
-      - name: Publish to Open VSX
-        if: ${{ env.OVSX_PAT != '' }}
-        run: npx --yes ovsx publish cera.vsix --pat "$OVSX_PAT"

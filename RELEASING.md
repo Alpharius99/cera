@@ -1,36 +1,28 @@
 # Releasing Cera
 
-Releases are cut from a version tag. Pushing a `vX.Y.Z` tag runs
-[`.github/workflows/release.yml`](.github/workflows/release.yml), which builds
-the VSIX, creates a GitHub Release with the `.vsix` attached, and publishes to
-the marketplaces when the relevant tokens are configured.
+Every push to `main` creates the next patch release. The
+[`.github/workflows/release.yml`](.github/workflows/release.yml) workflow reads
+the latest `vX.Y.Z` tag, increments the patch version, updates the package
+metadata inside CI, builds the VSIX, creates and pushes the new tag, uploads the
+VSIX as a workflow artifact, and creates a GitHub Release with the `.vsix`
+attached. Upload the resulting VSIX to the VS Code Marketplace manually.
 
 ## Steps
 
-1. **Update the changelog.** Move the `[Unreleased]` entries in
-   [CHANGELOG.md](CHANGELOG.md) under a new `[X.Y.Z]` heading with the date.
-2. **Bump the version** (updates `package.json` and creates a commit + tag):
+1. Merge a change to `main`.
+2. The **Release** workflow runs automatically: compute next patch version →
+   update `package.json` and `package-lock.json` in CI → release metadata check
+   → build → `npm test` → `npm run package` → upload `cera.vsix` as a workflow
+   artifact → create and push the new `vX.Y.Z` tag → create a GitHub Release
+   with `cera.vsix` attached.
+3. Download `cera.vsix` from the GitHub Release or the Release workflow
+   artifact.
+4. Upload the VSIX in the Visual Studio Marketplace publisher management page.
 
-   ```bash
-   npm version <patch|minor|major>
-   ```
+## Marketplace upload
 
-3. **Push the commit and tag:**
-
-   ```bash
-   git push && git push --tags
-   ```
-
-4. The **Release** workflow runs automatically: build → `npm test` → `npm run
-   package` → GitHub Release with `cera.vsix` attached → publish (if tokens set).
-
-## Publishing tokens (optional)
-
-Publishing steps run only when these repository secrets exist; otherwise they
-are skipped and can be run manually.
-
-- `VSCE_PAT` — VS Code Marketplace token. Manual: `npx @vscode/vsce publish --packagePath cera.vsix`
-- `OVSX_PAT` — Open VSX token. Manual: `npx ovsx publish cera.vsix --pat <token>`
+The GitHub Release is the source for the exact VSIX to upload. The package
+version inside the VSIX is the automatically generated release version.
 
 ## Manual VSIX build (no release)
 

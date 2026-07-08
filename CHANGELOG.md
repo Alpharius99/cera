@@ -6,11 +6,23 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-07-08
+
+### Added
+
+- Floating heading outline navigation overlay for quick document movement.
+
 ### Changed
 
 - Block edit mode now opens only on double-click, leaving single-click text
   selection available in rendered blocks
   ([#53](https://github.com/Alpharius99/cera/issues/53)).
+
+### Fixed
+
+- Release workflow now creates the next patch release on every push to `main`,
+  updates package metadata inside CI, builds a downloadable VSIX, and leaves VS
+  Code Marketplace upload as a manual publisher-dashboard step.
 
 ## [0.0.4] - 2026-06-17
 
@@ -76,6 +88,7 @@ Marketplace).
   behavior for redo of programmatic edits to a document shown only in a custom
   editor. Undo works normally.
 
-[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/Alpharius99/cera/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/Alpharius99/cera/compare/v0.0.4...v0.0.6
 [0.0.4]: https://github.com/Alpharius99/cera/compare/v0.0.3...v0.0.4
 [0.0.1]: https://github.com/Alpharius99/cera/releases/tag/v0.0.1
