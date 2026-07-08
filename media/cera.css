@@ -248,6 +248,129 @@ body {
   opacity: 0.6;
 }
 
+/* Heading outline: a left-side floating rail for jumping through H1-H3
+   structure (#54). It overlays the document instead of changing layout. */
+.cera-heading-outline {
+  position: fixed;
+  top: 50%;
+  left: 10px;
+  z-index: 20;
+  width: 34px;
+  height: 33vh;
+  min-height: 120px;
+  max-height: 260px;
+  transform: translateY(-50%);
+  opacity: 0.42;
+  transition:
+    width 0.14s ease,
+    opacity 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.cera-heading-outline:hover,
+.cera-heading-outline:focus-within {
+  width: min(280px, 42vw);
+  opacity: 0.96;
+}
+
+.cera-heading-outline-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 8px 6px;
+  overflow: hidden;
+  background-color: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border, currentColor);
+  border-radius: 6px;
+  box-shadow: 0 2px 10px var(--vscode-widget-shadow, transparent);
+}
+
+.cera-heading-outline-entry {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 16px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--vscode-editor-foreground);
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.cera-heading-outline-entry:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.cera-heading-outline-entry:disabled {
+  cursor: default;
+}
+
+.cera-heading-outline-bar {
+  display: block;
+  height: 2px;
+  background-color: var(--vscode-icon-foreground);
+  opacity: 0.72;
+  border-radius: 2px;
+}
+
+.cera-heading-outline-entry--h1 .cera-heading-outline-bar {
+  width: 26px;
+  height: 3px;
+  opacity: 1;
+}
+
+.cera-heading-outline-entry--h2 .cera-heading-outline-bar {
+  width: 20px;
+}
+
+.cera-heading-outline-entry--h3 .cera-heading-outline-bar {
+  width: 14px;
+  opacity: 0.55;
+}
+
+.cera-heading-outline-entry--active .cera-heading-outline-bar {
+  background-color: var(--vscode-focusBorder);
+  opacity: 1;
+}
+
+.cera-heading-outline-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0;
+  font-size: 0.86em;
+  transition: opacity 0.12s ease;
+}
+
+.cera-heading-outline:hover .cera-heading-outline-label,
+.cera-heading-outline:focus-within .cera-heading-outline-label {
+  opacity: 1;
+}
+
+.cera-heading-outline--disabled {
+  opacity: 0.24;
+}
+
+.cera-heading-outline--empty {
+  width: 24px;
+  opacity: 0.34;
+}
+
+.cera-heading-outline-empty {
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  border: 1px solid var(--vscode-icon-foreground);
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
 /* Chord overlay: a centered cheat-sheet of formatting shortcuts shown while the
    modifier is held (#19). Informational only — never captures input. */
 .cera-chord-overlay {
@@ -274,6 +397,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .cera-block,
   .cera-bubble,
+  .cera-heading-outline,
+  .cera-heading-outline-label,
   .cera-chord-overlay {
     animation: none;
     transition: none;
