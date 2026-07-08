@@ -26,11 +26,18 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - name: Fetch release tags
+        run: git fetch --force --tags origin
       - name: Compute next patch version
+        id: version
         run: node scripts/next-release-version.mjs
       - name: Prepare package version
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
         run: node scripts/prepare-release-version.mjs
       - name: Verify release metadata
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
         run: node scripts/check-release.mjs
       - run: npm install
       # Gate the release on the unit suite (the commit's CI already ran the full
@@ -47,6 +54,8 @@ jobs:
           if-no-files-found: error
 
       - name: Create and push release tag
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
         run: |
           if ! git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
             git tag "$RELEASE_TAG"
@@ -56,7 +65,7 @@ jobs:
       - name: Create GitHub Release with the VSIX
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
+          tag_name: ${{ steps.version.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           files: cera.vsix
           generate_release_notes: true

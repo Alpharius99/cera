@@ -55,9 +55,14 @@ const next = headVersion
 const releaseVersion = `${next.major}.${next.minor}.${next.patch}`;
 const releaseTag = `v${releaseVersion}`;
 const lines = [`RELEASE_VERSION=${releaseVersion}`, `RELEASE_TAG=${releaseTag}`];
+const outputLines = [`release_version=${releaseVersion}`, `release_tag=${releaseTag}`];
 
 if (process.env.GITHUB_ENV) {
   appendFileSync(process.env.GITHUB_ENV, `${lines.join("\n")}\n`);
+}
+
+if (process.env.GITHUB_OUTPUT) {
+  appendFileSync(process.env.GITHUB_OUTPUT, `${outputLines.join("\n")}\n`);
 }
 
 console.log(lines.join("\n"));

@@ -30,10 +30,15 @@ function runPrepareVersion(releaseRoot: string, version: string) {
   });
 }
 
-function runNextVersion(tags: string, tagsOnHead = "") {
+function runNextVersion(tags: string, tagsOnHead = "", outputFile?: string) {
   return spawnSync(process.execPath, ["scripts/next-release-version.mjs"], {
     cwd: root,
-    env: { ...process.env, EXISTING_TAGS: tags, EXISTING_HEAD_TAGS: tagsOnHead },
+    env: {
+      ...process.env,
+      EXISTING_TAGS: tags,
+      EXISTING_HEAD_TAGS: tagsOnHead,
+      ...(outputFile ? { GITHUB_OUTPUT: outputFile } : {}),
+    },
     encoding: "utf8",
   });
 }
@@ -58,6 +63,17 @@ describe("automatic manual Marketplace release packaging", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("RELEASE_VERSION=0.0.6");
     expect(result.stdout).toContain("RELEASE_TAG=v0.0.6");
+  });
+
+  test("writes lowercase GitHub step outputs for workflow action inputs", () => {
+    const outputFile = join(mkdtempSync(join(tmpdir(), "cera-outputs-")), "out");
+    const result = runNextVersion("v0.0.5", "", outputFile);
+    const output = readFileSync(outputFile, "utf8");
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(output).toContain("release_version=0.0.6");
+    expect(output).toContain("release_tag=v0.0.6");
   });
 
   test("starts at v0.0.1 when no version tags exist", () => {
@@ -158,6 +174,32 @@ describe("automatic manual Marketplace release packaging", () => {
     expect(nextIndex).toBeLessThan(prepareIndex);
     expect(prepareIndex).toBeLessThan(guardIndex);
     expect(guardIndex).toBeLessThan(packageIndex);
+  });
+
+  test("fetches remote tags before computing the next release version", () => {
+    const workflow = readFileSync(
+      join(root, ".github/workflows/release.yml"),
+      "utf8",
+    );
+    const fetchIndex = workflow.indexOf("git fetch --force --tags origin");
+    const nextIndex = workflow.indexOf("node scripts/next-release-version.mjs");
+
+    expect(fetchIndex).toBeGreaterThan(-1);
+    expect(nextIndex).toBeGreaterThan(-1);
+    expect(fetchIndex).toBeLessThan(nextIndex);
+  });
+
+  test("uses computed step outputs for tag creation and GitHub Release inputs", () => {
+    const workflow = readFileSync(
+      join(root, ".github/workflows/release.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("id: version");
+    expect(workflow).toContain("RELEASE_TAG: ${{ steps.version.outputs.release_tag }}");
+    expect(workflow).toContain("tag_name: ${{ steps.version.outputs.release_tag }}");
+    expect(workflow).toContain("target_commitish: ${{ github.sha }}");
+    expect(workflow).not.toContain("tag_name: ${{ env.RELEASE_TAG }}");
   });
 
   test("fetches tags and creates the computed tag before creating the GitHub Release", () => {
