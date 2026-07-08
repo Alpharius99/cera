@@ -40,6 +40,18 @@ describe("webview rendering (#26)", () => {
     expect(posted).toContainEqual({ type: "ready" });
   });
 
+  it("renders the floating heading outline from document headings (#54)", () => {
+    update("# One\n\n## Two\n\n### Three\n");
+
+    const outline = document.body.querySelector(".cera-heading-outline");
+    expect(outline).not.toBeNull();
+    expect([...outline!.querySelectorAll(".cera-heading-outline-label")].map((el) => el.textContent)).toEqual([
+      "One",
+      "Two",
+      "Three",
+    ]);
+  });
+
   it("renders the document into block elements with stable index/type/kind", () => {
     update("# One\n\nTwo\n");
     const blocks = root.querySelectorAll(".cera-block");
@@ -131,6 +143,22 @@ describe("reveal-on-focus block editing (#8)", () => {
     expect(block0.classList.contains("cera-block--editing")).toBe(true);
     expect(block0.querySelector(".fake-editor")).not.toBeNull();
     expect(seeded).toEqual(["# One"]);
+  });
+
+  it("disables the heading outline while a block editor is open (#54)", () => {
+    remountWithFakeEditor();
+    update("# One\n\n## Two\n");
+    const outline = document.body.querySelector<HTMLElement>(".cera-heading-outline")!;
+    expect(outline.getAttribute("aria-disabled")).toBe("false");
+
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    doubleClickBlock(block0);
+
+    expect(outline.classList.contains("cera-heading-outline--disabled")).toBe(true);
+    expect(outline.getAttribute("aria-disabled")).toBe("true");
+    root.click();
+    expect(outline.classList.contains("cera-heading-outline--disabled")).toBe(false);
+    expect(outline.getAttribute("aria-disabled")).toBe("false");
   });
 
   it("opens only one editor at a time", () => {

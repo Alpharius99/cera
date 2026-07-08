@@ -2,6 +2,7 @@ import { parseBlocks, Block } from "./blocks";
 import { sanitizeHtml } from "./sanitize";
 import { applyImagePolicy, ImagePolicy } from "./images";
 import { BlockEditor, createBlockEditor } from "./editor";
+import { createHeadingOutline } from "./headingOutline";
 
 /** Minimal host interface (VS Code's webview API surface Cera uses). */
 export interface WebviewHost {
@@ -28,6 +29,8 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
   const nonce = options.nonce ?? "";
 
   const policy: ImagePolicy = { remoteMode: "render", baseUri: "" };
+  const headingOutline = createHeadingOutline();
+  document.body.appendChild(headingOutline.dom);
   let blocks: Block[] = [];
   let active: { el: HTMLElement; editor: BlockEditor; block: Block; baseVersion: number } | null = null;
   // Latest document state from the host. While a block is being edited, external
@@ -54,6 +57,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     active.el.classList.remove("cera-block--editing");
     paintBlock(active.el, active.block);
     active = null;
+    headingOutline.setEditing(false);
   }
 
   // After committing a split (the editor stays open), re-tag the active block to
@@ -122,6 +126,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       empty.className = "cera-empty";
       empty.textContent = "Empty document. Start typing in the underlying editor.";
       root.appendChild(empty);
+      headingOutline.update(root);
       return;
     }
 
@@ -134,6 +139,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
       paintBlock(el, block);
       root.appendChild(el);
     }
+    headingOutline.update(root);
   }
 
   // Commit the active block (explicit exit) and move to the block `direction`
@@ -236,6 +242,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     editor.focus();
     // Tag the editor with the document version it was opened against (#10).
     active = { el: blockEl, editor, block, baseVersion: latestVersion };
+    headingOutline.setEditing(true);
   }
 
   const onClick = (event: Event): void => {
@@ -337,5 +344,6 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     root.removeEventListener("click", onClick);
     root.removeEventListener("dblclick", onDoubleClick);
     destroyActive();
+    headingOutline.destroy();
   };
 }
