@@ -6,6 +6,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Block edit mode now opens only on double-click, leaving single-click text
+  selection available in rendered blocks
+  ([#53](https://github.com/Alpharius99/cera/issues/53)).
+
 ## [0.0.4] - 2026-06-17
 
 ### Added

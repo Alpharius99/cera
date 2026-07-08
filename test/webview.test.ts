@@ -29,6 +29,12 @@ function update(text: string, extra: Record<string, unknown> = {}): void {
   window.dispatchEvent(new MessageEvent("message", { data: { type: "update", text, ...extra } }));
 }
 
+function doubleClickBlock(block: HTMLElement): void {
+  block.click();
+  block.click();
+  block.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+}
+
 describe("webview rendering (#26)", () => {
   it("posts a ready message to the host on load", () => {
     expect(posted).toContainEqual({ type: "ready" });
@@ -104,11 +110,23 @@ describe("reveal-on-focus block editing (#8)", () => {
     });
   }
 
-  it("opens a source editor seeded with the block's raw text on click", () => {
+  it("keeps rendered block text selectable on single click", () => {
     remountWithFakeEditor();
     update("# One\n\nTwo\n");
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     block0.click();
+
+    expect(block0.classList.contains("cera-block--editing")).toBe(false);
+    expect(block0.querySelector(".fake-editor")).toBeNull();
+    expect(block0.querySelector("h1")?.textContent).toBe("One");
+    expect(seeded).toEqual([]);
+  });
+
+  it("opens a source editor seeded with the block's raw text on double-click", () => {
+    remountWithFakeEditor();
+    update("# One\n\nTwo\n");
+    const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
+    doubleClickBlock(block0);
 
     expect(block0.classList.contains("cera-block--editing")).toBe(true);
     expect(block0.querySelector(".fake-editor")).not.toBeNull();
@@ -118,8 +136,8 @@ describe("reveal-on-focus block editing (#8)", () => {
   it("opens only one editor at a time", () => {
     remountWithFakeEditor();
     update("# One\n\nTwo\n");
-    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
-    root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!);
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!);
 
     expect(root.querySelectorAll(".fake-editor").length).toBe(1);
     expect(seeded).toEqual(["# One", "Two"]);
@@ -129,7 +147,7 @@ describe("reveal-on-focus block editing (#8)", () => {
     remountWithFakeEditor();
     update("# One\n");
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
-    block0.click();
+    doubleClickBlock(block0);
     (block0.querySelector(".fake-editor") as HTMLElement).click();
     expect(seeded).toEqual(["# One"]);
   });
@@ -138,7 +156,7 @@ describe("reveal-on-focus block editing (#8)", () => {
     remountWithFakeEditor();
     update("# One\n\nTwo\n");
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
-    block0.click();
+    doubleClickBlock(block0);
     expect(block0.querySelector(".fake-editor")).not.toBeNull();
 
     root.click(); // outside any block
@@ -167,7 +185,7 @@ describe("block commit (#9)", () => {
     update("# One\n\nTwo\n");
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     edited = "# One";
-    block0.click();
+    doubleClickBlock(block0);
     edited = "# Edited";
     block0
       .querySelector(".fake-editor")!
@@ -181,11 +199,11 @@ describe("block commit (#9)", () => {
     });
   });
 
-  it("commits the open block when another block is clicked", () => {
+  it("commits the open block without opening another block on single click", () => {
     mountWithEditedText();
     update("# One\n\nTwo\n");
     edited = "Two";
-    root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!);
     edited = "Two edited";
     root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
 
@@ -194,13 +212,30 @@ describe("block commit (#9)", () => {
       endLine: 3,
       text: "Two edited",
     });
+    expect(root.querySelector('.cera-block[data-block-index="0"] .fake-editor')).toBeNull();
+  });
+
+  it("commits the open block and opens another block on double-click", () => {
+    mountWithEditedText();
+    update("# One\n\nTwo\n");
+    edited = "Two";
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="1"]')!);
+    edited = "Two edited";
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!);
+
+    expect(posted.find((m) => m.type === "commit")).toMatchObject({
+      startLine: 2,
+      endLine: 3,
+      text: "Two edited",
+    });
+    expect(root.querySelector('.cera-block[data-block-index="0"] .fake-editor')).not.toBeNull();
   });
 
   it("does not commit when the text is unchanged", () => {
     mountWithEditedText();
     update("# One\n");
     edited = "# One";
-    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!);
     root.click();
 
     expect(posted.some((m) => m.type === "commit")).toBe(false);
@@ -229,7 +264,7 @@ describe("concurrent-edit safety (#10)", () => {
     update("# One\n\nTwo\n", { version: 1 });
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     edited = "# One";
-    block0.click();
+    doubleClickBlock(block0);
     expect(block0.querySelector(".fake-editor")).not.toBeNull();
 
     update("# One\n\nTwo\n\nThree\n", { version: 2 }); // external edit while editing
@@ -242,7 +277,7 @@ describe("concurrent-edit safety (#10)", () => {
     update("# One\n\nTwo\n", { version: 5 });
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     edited = "# One";
-    block0.click();
+    doubleClickBlock(block0);
     edited = "# Changed";
     escape(block0.querySelector(".fake-editor")!);
 
@@ -260,7 +295,7 @@ describe("concurrent-edit safety (#10)", () => {
     update("# One\n", { version: 1 });
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     edited = "# One"; // unchanged
-    block0.click();
+    doubleClickBlock(block0);
     update("# One\n\nAdded\n", { version: 2 }); // deferred while editing
     escape(root.querySelector(".fake-editor")!);
 
@@ -289,7 +324,7 @@ describe("block-splitting commit behavior (#11)", () => {
     update("# One\n\nTwo\n", { version: 1 });
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
     edited = "# One";
-    block0.click();
+    doubleClickBlock(block0);
     return block0;
   };
 
@@ -358,7 +393,7 @@ describe("block navigation (#12)", () => {
   const editorAt = (i: number): Element | null =>
     root.querySelector(`.cera-block[data-block-index="${i}"] .fake-editor`);
   const openAt = (i: number): Element => {
-    root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!);
     return editorAt(i)!;
   };
 
@@ -420,7 +455,7 @@ describe("active-block affordances and controls (#13)", () => {
   const editorAt = (i: number): Element | null =>
     root.querySelector(`.cera-block[data-block-index="${i}"] .fake-editor`);
   const openAt = (i: number): HTMLElement => {
-    root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!);
     return root.querySelector<HTMLElement>(`.cera-block[data-block-index="${i}"]`)!;
   };
 
@@ -499,7 +534,7 @@ describe("slash menu Escape handling (#14)", () => {
 
   it("Escape closes the open menu instead of exiting the editor", () => {
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
-    block0.click();
+    doubleClickBlock(block0);
     const editorEl = block0.querySelector(".fake-editor")!;
     const tooltip = document.createElement("div");
     tooltip.className = "cm-tooltip-autocomplete";
@@ -513,7 +548,7 @@ describe("slash menu Escape handling (#14)", () => {
 
   it("Escape exits the editor when no menu is open", () => {
     const block0 = root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!;
-    block0.click();
+    doubleClickBlock(block0);
     escape(block0.querySelector(".fake-editor")!);
     expect(block0.querySelector(".fake-editor"), "editor collapses").toBeNull();
   });
@@ -545,7 +580,7 @@ describe("undo/redo keystroke forwarding (#9)", () => {
       },
     });
     update("# One\n");
-    root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!.click();
+    doubleClickBlock(root.querySelector<HTMLElement>('.cera-block[data-block-index="0"]')!);
     posted.length = 0;
     press("z", { metaKey: true });
     expect(posted.some((m) => m.type === "undo")).toBe(false);

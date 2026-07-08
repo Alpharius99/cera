@@ -19,7 +19,7 @@ export interface MountOptions {
 
 /**
  * Mount the reveal-on-focus webview: render the document into `root` on each
- * host `update`, and open a source editor for a block when it is clicked (#8).
+ * host `update`, and open a source editor for a block when it is double-clicked (#8, #53).
  * Returns a dispose function that detaches listeners and closes any open editor.
  */
 export function mountWebview(root: HTMLElement, host: WebviewHost, options: MountOptions = {}): () => void {
@@ -179,7 +179,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     return button;
   }
 
-  // Reveal-on-focus: click a rendered block to edit its raw Markdown source.
+  // Reveal-on-focus: double-click a rendered block to edit its raw Markdown source.
   function openEditor(blockEl: HTMLElement, block: Block): void {
     const editor = createEditor(block.raw, nonce);
     blockEl.classList.add("cera-block--editing");
@@ -243,8 +243,23 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     if (blockEl === active?.el) {
       return;
     }
-    // A click elsewhere is an implicit (blur) exit. In split mode this commits
-    // but keeps the editor open, so the new block is not opened.
+    // A click elsewhere is an implicit (blur) exit. A single click on rendered
+    // block text must leave that text selectable, so opening happens only from
+    // the dblclick handler below.
+    if (active) {
+      exitEditor(false);
+    }
+  };
+  root.addEventListener("click", onClick);
+
+  const onDoubleClick = (event: Event): void => {
+    const blockEl = (event.target as HTMLElement).closest<HTMLElement>(".cera-block");
+    if (!blockEl || blockEl === active?.el) {
+      return;
+    }
+    // A double-click on another block should first commit/blur the current
+    // editor. In split mode, implicit blur keeps the editor open, so do not
+    // open the clicked block.
     if (active) {
       const stayOpen = parseBlocks(active.editor.getText()).length > 1;
       exitEditor(false);
@@ -252,14 +267,12 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
         return;
       }
     }
-    if (blockEl) {
-      const block = blocks[Number(blockEl.dataset.blockIndex)];
-      if (block) {
-        openEditor(blockEl, block);
-      }
+    const block = blocks[Number(blockEl.dataset.blockIndex)];
+    if (block) {
+      openEditor(blockEl, block);
     }
   };
-  root.addEventListener("click", onClick);
+  root.addEventListener("dblclick", onDoubleClick);
 
   // Messages arrive over VS Code's trusted host<->webview channel (the webview
   // is sandboxed and isolated; there is no cross-origin sender to validate).
@@ -322,6 +335,7 @@ export function mountWebview(root: HTMLElement, host: WebviewHost, options: Moun
     target.removeEventListener("message", onMessage);
     window.removeEventListener("keydown", onKeyDown);
     root.removeEventListener("click", onClick);
+    root.removeEventListener("dblclick", onDoubleClick);
     destroyActive();
   };
 }
