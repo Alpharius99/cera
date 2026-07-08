@@ -4,7 +4,7 @@ A distraction-free, **reveal-on-focus** Markdown editor for Visual Studio Code.
 
 Cera is a port of the [Cera desktop editor](https://github.com/Alpharius99/MarkItDown)
 (C# / Avalonia) to a VS Code extension. Same philosophy: see fully rendered
-Markdown, click a block to edit its raw source, and never fight a toolbar.
+Markdown, double-click a block to edit its raw source, and never fight a toolbar.
 The source project is private; migration notes and source-file pointers live in
 [docs/MARKITDOWN-MIGRATION.md](docs/MARKITDOWN-MIGRATION.md).
 
@@ -33,7 +33,7 @@ builds are on the [Releases page](https://github.com/Alpharius99/cera/releases).
 **Zen mode first.** No toolbar, no sidebar, no status bar — just your text in a
 centered reading column that inherits your VS Code theme.
 
-- **Reveal-on-focus editing** — rendered Markdown by default; click a block to reveal raw source
+- **Reveal-on-focus editing** — rendered Markdown by default; double-click a block to reveal raw source
 - **Block granularity** — edit one block at a time (paragraph, heading, list, code, table…)
 - **Keyboard-driven** — three invisible formatting layers (slash commands, selection bubble, chord overlay)
 - **Complete visibility** — every byte of the file is shown; nothing is hidden

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cera Navigation Hover</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      color: #1f2328;
+      padding: 32px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      margin: 0 0 24px;
+      color: #586069;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .choice {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .choice:hover,
+    .choice.selected {
+      border-color: #0969da;
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12);
+    }
+    .mock {
+      position: relative;
+      height: 280px;
+      border: 1px solid #d8dee4;
+      border-radius: 6px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .doc { padding: 22px 22px 22px 52px; }
+    .line {
+      height: 8px;
+      border-radius: 99px;
+      background: #d0d7de;
+      margin: 12px 0;
+    }
+    .heading {
+      height: 14px;
+      background: #57606a;
+    }
+    .nav {
+      position: absolute;
+      left: 10px;
+      top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      width: 32px;
+      padding: 8px 5px;
+      border: 1px solid #d8dee4;
+      border-radius: 5px;
+      background: rgba(246, 248, 250, 0.72);
+      opacity: 0.48;
+      z-index: 2;
+    }
+    .bar {
+      border-radius: 99px;
+      background: #24292f;
+    }
+    .l1 { width: 34px; height: 5px; opacity: 0.95; }
+    .l2 { width: 28px; height: 4px; opacity: 0.82; }
+    .l3 { width: 22px; height: 3px; opacity: 0.72; }
+    .l4 { width: 16px; height: 2px; opacity: 0.62; }
+    .l5 { width: 11px; height: 1px; opacity: 0.52; }
+    .focus-only .nav {
+      opacity: 0.95;
+    }
+    .focus-only .bar:nth-child(3) {
+      transform: scaleX(1.8) scaleY(2);
+      transform-origin: left center;
+      background: #0969da;
+    }
+    .tooltip {
+      position: absolute;
+      left: 50px;
+      top: 62px;
+      max-width: 180px;
+      padding: 7px 9px;
+      border: 1px solid #d8dee4;
+      border-radius: 5px;
+      background: #fff;
+      box-shadow: 0 8px 18px rgba(31, 35, 40, 0.16);
+      font-size: 12px;
+      color: #24292f;
+      z-index: 3;
+    }
+    .strip-expand .nav {
+      width: 172px;
+      opacity: 0.96;
+      background: rgba(246, 248, 250, 0.96);
+      box-shadow: 0 8px 20px rgba(31, 35, 40, 0.16);
+    }
+    .outline-row {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-width: 150px;
+    }
+    .outline-label {
+      font-size: 12px;
+      color: #24292f;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lens .nav {
+      opacity: 0.95;
+      width: 42px;
+      box-shadow: 0 8px 20px rgba(31, 35, 40, 0.14);
+    }
+    .lens-zone {
+      position: absolute;
+      left: 34px;
+      top: 42px;
+      width: 148px;
+      height: 88px;
+      border: 1px solid #d8dee4;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 8px 20px rgba(31, 35, 40, 0.16);
+      padding: 10px 12px;
+      z-index: 3;
+    }
+    .lens-title {
+      font-size: 13px;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+    .lens-text {
+      font-size: 11px;
+      color: #57606a;
+      line-height: 1.35;
+    }
+    .meta h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    .meta p {
+      margin: 0;
+      color: #57606a;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    @media (max-width: 950px) {
+      body { padding: 18px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <h1>What should happen on hover?</h1>
+  <p class="subtitle">Baseline: floating overlay, always visible, slightly faded until the pointer reaches it.</p>
+
+  <div class="grid">
+    <button class="choice" type="button">
+      <div class="mock focus-only" aria-hidden="true">
+        <div class="nav">
+          <div class="bar l1"></div>
+          <div class="bar l3"></div>
+          <div class="bar l4"></div>
+          <div class="bar l1"></div>
+          <div class="bar l5"></div>
+        </div>
+        <div class="tooltip">Implementation notes</div>
+        <div class="doc">
+          <div class="line heading" style="width: 62%"></div>
+          <div class="line" style="width: 92%"></div>
+          <div class="line" style="width: 86%"></div>
+          <div class="line heading" style="width: 44%"></div>
+          <div class="line" style="width: 95%"></div>
+        </div>
+      </div>
+      <div class="meta">
+        <h2>A. Bar zoom plus tooltip</h2>
+        <p>Only the hovered bar grows; a compact tooltip shows the heading text.</p>
+      </div>
+    </button>
+
+    <button class="choice" type="button">
+      <div class="mock strip-expand" aria-hidden="true">
+        <div class="nav">
+          <div class="outline-row"><div class="bar l1"></div><div class="outline-label">Project brief</div></div>
+          <div class="outline-row"><div class="bar l3"></div><div class="outline-label">Milestones</div></div>
+          <div class="outline-row"><div class="bar l4"></div><div class="outline-label">Risks</div></div>
+          <div class="outline-row"><div class="bar l1"></div><div class="outline-label">Implementation notes</div></div>
+          <div class="outline-row"><div class="bar l5"></div><div class="outline-label">Edge cases</div></div>
+        </div>
+        <div class="doc">
+          <div class="line heading" style="width: 62%"></div>
+          <div class="line" style="width: 92%"></div>
+          <div class="line" style="width: 86%"></div>
+          <div class="line heading" style="width: 44%"></div>
+          <div class="line" style="width: 95%"></div>
+        </div>
+      </div>
+      <div class="meta">
+        <h2>B. Expand into mini outline</h2>
+        <p>The whole strip widens on hover and reveals all visible heading labels.</p>
+      </div>
+    </button>
+
+    <button class="choice" type="button">
+      <div class="mock lens" aria-hidden="true">
+        <div class="nav">
+          <div class="bar l1"></div>
+          <div class="bar l3"></div>
+          <div class="bar l4"></div>
+          <div class="bar l1"></div>
+          <div class="bar l5"></div>
+        </div>
+        <div class="lens-zone">
+          <div class="lens-title">Implementation notes</div>
+          <div class="lens-text">A local preview appears next to the cursor, with the selected heading and nearby context.</div>
+        </div>
+        <div class="doc">
+          <div class="line heading" style="width: 62%"></div>
+          <div class="line" style="width: 92%"></div>
+          <div class="line" style="width: 86%"></div>
+          <div class="line heading" style="width: 44%"></div>
+          <div class="line" style="width: 95%"></div>
+        </div>
+      </div>
+      <div class="meta">
+        <h2>C. Hover lens</h2>
+        <p>A larger popup appears with the heading and a small amount of context.</p>
+      </div>
+    </button>
+  </div>
+</body>
+</html>
